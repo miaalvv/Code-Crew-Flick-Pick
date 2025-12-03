@@ -44,6 +44,20 @@ export async function POST(req: Request) {
     );
   }
 
+  // gets current round num (NEW)
+  const { data: currentRound, error: roundErr } = await supabase
+    .from("rounds")
+    .select("round_id, round_num")
+    .eq("party_id", party_id)
+    .eq("is_active", true)
+    .single();
+
+  if (!currentRound || roundErr) {
+    return NextResponse.json({ error: "no active round for this party" }, { status: 400 });
+  }
+
+  const round_id = currentRound.round_id;
+
   // upsert swipe (so re-swiping the same card just updates the decision)
   const { error: insErr } = await supabase
     .from("swipes")
@@ -55,6 +69,7 @@ export async function POST(req: Request) {
       title,
       poster_path,
       decision,
+      round_id, // NEW
     }, { onConflict: "party_id,user_id,tmdb_id,media_type" });
 
   if (insErr) {
@@ -76,7 +91,8 @@ export async function POST(req: Request) {
     .from("swipes")
     .select("tmdb_id, media_type, title, poster_path, user_id, decision")
     .eq("party_id", party_id)
-    .eq("decision", "like");
+    .eq("decision", "like")
+    .eq("round_id", round_id); // NEW
 
   if (likeErr) {
     return NextResponse.json({ error: likeErr.message }, { status: 400 });
@@ -117,6 +133,27 @@ export async function POST(req: Request) {
       poster_path: m.poster_path,
       like_count: m.users.size,
     }));
+
+  // moves matches into party_candidates (NEW)
+  if (matches.length > 0) {
+    const { error: candidateErr } = await supabase
+      .from("party_candidates")
+      .upsert(
+        matches.map(m => ({
+          party_id,
+          tmdb_id: m.tmdb_id,
+          media_type: m.media_type,
+          title: m.title,
+          poster_path: m.poster_path,
+          round_id: round_id,        
+        })),
+        { onConflict: "party_id, round_id, tmdb_id, media_type" }
+      );
+
+    if (candidateErr) {
+      return NextResponse.json({ error: "could not store matches into party_candidates" }, { status: 400 });
+    }
+  }
 
   return NextResponse.json({ ok: true, matches });
 }

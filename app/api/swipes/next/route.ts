@@ -32,12 +32,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "party_id required" }, { status: 400 });
   }
 
-  // 1) movies this user has already swiped in this party
+  // get current round_id (NEW)
+  const { data: currentRound, error: roundErr } = await supabase
+    .from("rounds")
+    .select("round_id, round_num")
+    .eq("party_id", party_id)
+    .eq("is_active", true)
+    .single();
+
+  if (!currentRound || roundErr) {
+    return NextResponse.json({ error: "no active round for this party" }, { status: 400 });
+  }
+  const round_id = currentRound.round_id;
+
+  // 1) movies this user has already swiped in this party for this round
   const { data: seenRows, error: seenErr } = await supabase
     .from("swipes")
     .select("tmdb_id, media_type")
     .eq("party_id", party_id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("round_id", round_id); // NEW
 
   if (seenErr) {
     return NextResponse.json({ error: seenErr.message }, { status: 400 });
@@ -47,11 +61,12 @@ export async function POST(req: Request) {
     (seenRows ?? []).map((r) => `${r.media_type}:${r.tmdb_id}`)
   );
 
-  // 2) full candidate pool for this party
+  // 2) full candidate pool for this party and for this round
   const { data: pool, error: poolErr } = await supabase
     .from("party_candidates")
     .select("tmdb_id, media_type, title, poster_path")
-    .eq("party_id", party_id);
+    .eq("party_id", party_id)
+    .eq("round_id", round_id); // NEW
 
   if (poolErr) {
     return NextResponse.json({ error: poolErr.message }, { status: 400 });

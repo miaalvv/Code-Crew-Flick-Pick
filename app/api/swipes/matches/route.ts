@@ -25,6 +25,19 @@ export async function POST(req: Request) {
   } catch {}
   if (!party_id) return NextResponse.json({ error: "party_id required" }, { status: 400 });
 
+  // get current round_id (NEW)
+  const { data: currentRound, error: roundErr } = await supabase
+    .from("rounds")
+    .select("round_id, round_num")
+    .eq("party_id", party_id)
+    .eq("is_active", true)
+    .single();
+
+  if (roundErr || !currentRound) {
+    return NextResponse.json({ error: "no active round for this party" }, { status: 400 });
+  }
+  const round_id = currentRound.round_id;
+
   // How many members are in this party?
   const mc = await supabase
     .from("party_members")
@@ -37,7 +50,8 @@ export async function POST(req: Request) {
     .from("swipes")
     .select("user_id, tmdb_id, media_type, title, poster_path, decision")
     .eq("party_id", party_id)
-    .eq("decision", "like");
+    .eq("decision", "like")
+    .eq("round_id", round_id); // now only retrieves likes in the party for that round (NEW)
 
   if (likeErr) return NextResponse.json({ error: likeErr.message }, { status: 400 });
 
@@ -69,7 +83,9 @@ export async function POST(req: Request) {
       title: x.title,
       poster_path: x.poster_path,
       like_count: x.users.size,
+      round_id, // NEW
+      round_num: currentRound.round_num, // NEW
     }));
 
-  return NextResponse.json({ matches });
+  return NextResponse.json({ matches, round_id, round_num: currentRound.round_num, }); // return matches and round number (NEW)
 }
