@@ -23,7 +23,8 @@ export async function POST(req: Request) {
     .from("party_candidates")
     .select("tmdb_id, media_type, title, poster_path")
     .eq("round_id", round_id)
-    .eq("party_id", party_id);
+    .eq("party_id", party_id)
+    .eq("is_match", true);
 
   if (prevErr || !prevResults?.length) {
     return NextResponse.json({ ok: false, error: "No previous results" }, { status: 400 });
@@ -67,6 +68,7 @@ export async function POST(req: Request) {
     media_type: r.media_type,
     title: r.title,
     poster_path: r.poster_path,
+    is_match: false,
   }));
 
   // new round’s movie pool = previous results

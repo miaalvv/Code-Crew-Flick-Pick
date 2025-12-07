@@ -70,6 +70,7 @@ export async function POST(req: Request) {
       poster_path,
       decision,
       round_id, // NEW
+      is_match: true,
     }, { onConflict: "party_id,user_id,tmdb_id,media_type" });
 
   if (insErr) {
