@@ -42,6 +42,16 @@ export async function GET(req: Request) {
   }
   const movieCount = movies?.length ?? 0;
 
+  // checks for whether the session is finished (only one movie remains)
+  if (movieCount === 1) {
+    return NextResponse.json({
+      ok: true,
+      isRoundComplete: true,     // round is complete since session is finished
+      isSessionFinished: true,   // session is finished (no more rounds)
+      winner: movies[0]          // return the remaining/winner movie
+    });
+  }
+
   // num of current swipes
   const { data: swipes, error: swipeErr } = await supabase
     .from("swipes")
