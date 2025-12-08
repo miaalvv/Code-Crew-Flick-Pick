@@ -8,6 +8,7 @@ const supabase = createClient(
 
 /*
   Returns whether the current round is complete (bool); all party members have finished swiping
+  Also indicates if the session is finished (only one movie remains) and returns the winning movie if so.
 */
 
 export async function GET(req: Request) {

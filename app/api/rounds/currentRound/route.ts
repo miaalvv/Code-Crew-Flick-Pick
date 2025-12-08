@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 /*
-  Used to retrieve the current round within a session
+  Used to retrieve the current round (mainly for round_num) within a session
 */
 
 export async function GET(req: Request) {

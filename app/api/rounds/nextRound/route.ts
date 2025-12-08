@@ -7,8 +7,8 @@ const supabase = createClient(
 );
 
 /*
-  Sets previous round results as new pool for members to choose from. Also deactivates
-  previous round and activates new round.
+  Sets previous round results as new pool for members to choose from. 
+  Deactivates previous round and activates new round.
 */
 
 export async function POST(req: Request) {
