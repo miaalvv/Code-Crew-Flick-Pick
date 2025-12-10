@@ -1,7 +1,14 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../_lib/supabaseClient';
+
+type Provider = {
+  id: number;
+  name: string;
+  logo_path: string | null;
+};
 
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
@@ -10,6 +17,19 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  {/* Watch Providers */}
+  const [services, setServices] = useState<Provider[] | null>(null);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  {/* useState<any[]> used as a placeholder until I make a type for each of these prefs */}
+  const [userGenres, setUserGenres] = useState<any[] | null>(null);
+  const [userActors, setUserActors] = useState<any[] | null>(null);
+  const [userDirectors, setUserDirectors] = useState<any[] | null>(null);
+  const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
+  const [userDurations, setUserDurations] = useState<any[] | null>(null);
+  const [userStudios, setUserStudios] = useState<any[] | null>(null);
+  const [userDecades, setUserDecades] = useState<any[] | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -52,6 +72,53 @@ export default function ProfilePage() {
       } finally {
         setLoading(false);
       }
+ 
+      {/* Load and Display TMDB Providers on cards (code from dashboardd)*/}
+
+      // 3. Loads TMDB providers
+      try {
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          window.location.href = '/login';
+          return;
+        }
+              const res = await fetch('/api/tmdb/providers?region=US');
+              const json = await res.json();
+      
+              if (!json.ok) {
+                setServices([]);
+                setLoadingServices(false);
+                return;
+              }
+      
+              const allProviders: Provider[] = json.providers;
+      
+              // 4) Load this user's saved services from Supabase
+              const { data: rows, error } = await supabase
+                .from('user_services')
+                .select('provider_id')
+                .eq('user_id', user.id);
+      
+              if (error || !rows) {
+                setServices([]);
+                setLoadingServices(false);
+                return;
+              }
+      
+              const ids = rows.map((r: { provider_id: number }) => r.provider_id);
+              const selectedProviders = allProviders.filter((p) => ids.includes(p.id));
+      
+              setServices(selectedProviders);
+              setLoadingServices(false);
+            } catch (err) {
+              console.error(err);
+              setServices([]);
+              setLoadingServices(false);
+            }
     };
 
     load();
@@ -109,6 +176,21 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  {/* Cards and their information - 
+    id: card number, title: card title displayed, card_name: short card name, ref: link to specific pref page*/}
+
+  const cards = [
+    {id: 1, title: "Watch Providers", card_name: "providers", ref:"/preferences"},
+    {id: 2, title: "Genres", card_name: "genres", ref:"/pref_genres"},
+    {id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
+    {id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
+    {id: 5, title: "Keywords", card_name: "keywords", ref:"/pref_keywords"},
+    {id: 6, title: "Durations", card_name: "durations", ref:"/pref_durations"},
+    {id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
+    {id: 8, title: "Decades", card_name: "decades", ref:"/pref_decades"},
+  ];
+
 
   return (
     <div className="mt-4">
@@ -171,6 +253,67 @@ export default function ProfilePage() {
           </div>
         </form>
       </section>
+      
+
+      {/* User Preferences */}
+
+      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200">
+            <span className="h-2 w-2 rounded-full bg-sky-400" />
+            Preferences
+      </div>
+      
+      {/* Grid with 3 columns for cards */}
+      <div className='mt-4 grid grid-cols-3 gap-6 '>
+        {cards.map ((card) => (
+
+          <section key={card.id} className='rounded-3xl bg-slate-900/80 border border-slate-700/70 p-4 shadow-md'>
+
+            {/* flex allows card title and update button to be on same line */}
+            <div className='flex items-start'>
+
+              <h2 className='text-lg font-semibold text-slate-100 mb-1'>{card.title}</h2>
+
+              {/* card.ref pulls from const cards to allow each card to link to their own page */}
+              <a className='ml-auto rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition'
+                href={card.ref}>
+                Update
+              </a>
+
+            </div>
+
+            {/* Displays providers that the user has selected on card */}
+            {card.card_name == "providers" && (
+              <>
+                {loadingServices ? (
+                  <p className='text slate-400 text-sm'>Loading providers...</p>
+                ) : services && services.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {services.map ((provider) => (
+                      <div key = {provider.id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        {provider.logo_path && (
+                          <img src = {`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                          alt = {provider.name}
+                          className='h-5'/>
+                        )}
+                        <span className='text-xs text-slate-300'> {provider.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Watch Providers Selected</p>
+                )}
+              </>
+            )}
+            
+            {/* couldnt figure out how to do above part dynamically for each card gonna implement each one individually for now */}
+
+          </section>
+        ))}
+
+      </div>
+
     </div>
+
   );
 }
+

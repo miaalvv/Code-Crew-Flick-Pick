@@ -27,7 +27,7 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between gap-4 rounded-2xl border border-slate-700/60 bg-slate-900/70 px-4 py-3 shadow-lg shadow-black/30 backdrop-blur-md">
+   <header className="flex items-center justify-between gap-4 rounded-2xl border border-slate-700/60 bg-slate-900/70 px-4 py-3 shadow-lg shadow-black/30 backdrop-blur-md">
       {/* Logo / brand */}
       <Link href="/" className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-500/90 text-sm font-semibold shadow-md">
@@ -41,7 +41,7 @@ export default function Header() {
         </div>
       </Link>
 
-      {/* Nav + auth */}
+   {/* Nav + auth */}
       <nav className="flex items-center gap-4 text-sm">
         <Link
           href="/dashboard"
@@ -53,7 +53,7 @@ export default function Header() {
         {email ? (
           <div className="flex items-center gap-3">
             <span className="hidden text-xs text-slate-400 sm:inline">
-              Signed in as <span className="font-medium text-slate-200">{email}</span>
+              Signed in as <span className="font-medium text-slate-200"><Link href="/profile" className='hover:text-white'>{email}</Link></span>
             </span>
             <button
               onClick={signOut}
