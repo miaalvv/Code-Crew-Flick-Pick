@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       poster_path,
       decision,
       round_id, // NEW
-    }, { onConflict: "party_id,user_id,tmdb_id,media_type" });
+    }, { onConflict: "party_id,user_id,tmdb_id,media_type,round_id" }); // must match PRIMARY KEY (party_id, user_id, tmdb_id, media_type, round_id)
 
   if (insErr) {
     return NextResponse.json({ error: insErr.message }, { status: 400 });
@@ -145,10 +145,10 @@ export async function POST(req: Request) {
           media_type: m.media_type,
           title: m.title,
           poster_path: m.poster_path,
-          round_id: round_id,
+          round_id,
           is_match: true,        
         })),
-        { onConflict: "party_id, round_id, tmdb_id, media_type" }
+        { onConflict: "party_id,tmdb_id,media_type,round_id" }  // must match PRIMARY KEY (party_id, user_id, tmdb_id, media_type, round_id)
       );
 
     if (candidateErr) {
