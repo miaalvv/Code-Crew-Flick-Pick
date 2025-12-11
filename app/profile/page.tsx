@@ -10,6 +10,11 @@ type Provider = {
   logo_path: string | null;
 };
 
+type Genre = {
+  genre_id: number;
+  genre_name: string;
+};
+
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [initialDisplayName, setInitialDisplayName] = useState<string | null>(null);
@@ -22,8 +27,10 @@ export default function ProfilePage() {
   const [services, setServices] = useState<Provider[] | null>(null);
   const [loadingServices, setLoadingServices] = useState(true);
 
+  {/* Genres */}
+  const [userGenres, setUserGenres] = useState<Genre[] | null>(null);
+
   {/* useState<any[]> used as a placeholder until I make a type for each of these prefs */}
-  const [userGenres, setUserGenres] = useState<any[] | null>(null);
   const [userActors, setUserActors] = useState<any[] | null>(null);
   const [userDirectors, setUserDirectors] = useState<any[] | null>(null);
   const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
@@ -73,7 +80,7 @@ export default function ProfilePage() {
         setLoading(false);
       }
  
-      {/* Load and Display TMDB Providers on cards (code from dashboard)*/}
+      {/* ---------- Load and Display TMDB Providers on cards (code from dashboard) ----------*/}
 
       // 3. Loads TMDB providers
       try {
@@ -119,6 +126,40 @@ export default function ProfilePage() {
               setServices([]);
               setLoadingServices(false);
             }
+
+
+            {/* ---------- Loads and displays the user's selected genres on card ---------- */}
+
+            try {
+              const {
+                data: { user },
+              } = await supabase.auth. getUser ();
+
+              if (!user) {
+              window.location.href = "/login";
+              return;
+              }
+
+              {/* Fetch user's saved genres */}
+
+              const { data: genreRows, error: genreError } = await supabase
+                .from ("user_genres")
+                .select ("genre_id, genre_name")
+                .eq ("user_id", user.id);
+
+              if (genreError || !genreRows) {
+                setUserGenres ([]);
+                return;
+              }
+
+              setUserGenres (genreRows);
+
+            } catch (err) {
+              console.error (err);
+              setUserGenres ([]);
+            }
+
+
     };
 
     load();
@@ -306,6 +347,26 @@ export default function ProfilePage() {
             )}
             
             {/* couldnt figure out how to do above part dynamically for each card gonna implement each one individually for now */}
+
+            {/* Displays genres, that the user has selected, on the card */}
+
+            {card.card_name == "genres" && (
+              <>
+                {!userGenres ? (
+                  <p className='text slate-400 text-sm'>Loading genres...</p>
+                ) : userGenres.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {userGenres.map ((genre) => (
+                      <div key = {genre.genre_id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        <span className='text-xs text-slate-300'> {genre.genre_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Genres Selected</p>
+                )}
+              </>
+            )}
 
           </section>
         ))}
