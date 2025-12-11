@@ -73,7 +73,7 @@ export default function ProfilePage() {
         setLoading(false);
       }
  
-      {/* Load and Display TMDB Providers on cards (code from dashboardd)*/}
+      {/* Load and Display TMDB Providers on cards (code from dashboard)*/}
 
       // 3. Loads TMDB providers
       try {
