@@ -87,5 +87,5 @@ export async function POST(req: Request) {
       round_num: currentRound.round_num, // NEW
     }));
 
-  return NextResponse.json({ matches, round_id, round_num: currentRound.round_num, }); // return matches and round number (NEW)
+  return NextResponse.json({ matches });
 }
