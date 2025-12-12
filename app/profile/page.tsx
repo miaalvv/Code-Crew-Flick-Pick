@@ -15,6 +15,22 @@ type Genre = {
   genre_name: string;
 };
 
+type Duration = {
+  min_duration: number;
+  max_duration: number;
+};
+
+type Decade = {
+    label: string;
+    start: number;
+    end: number;
+}
+
+type Keyword = {
+    id: number;
+    name: string;
+};
+
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [initialDisplayName, setInitialDisplayName] = useState<string | null>(null);
@@ -30,11 +46,16 @@ export default function ProfilePage() {
   {/* Genres */}
   const [userGenres, setUserGenres] = useState<Genre[] | null>(null);
 
+  {/* Duration */}
+  const [userDurations, setUserDurations] = useState<Duration | null>(null);
+
+  {/* Keywords */}
+  const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
+
   {/* useState<any[]> used as a placeholder until I make a type for each of these prefs */}
   const [userActors, setUserActors] = useState<any[] | null>(null);
   const [userDirectors, setUserDirectors] = useState<any[] | null>(null);
-  const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
-  const [userDurations, setUserDurations] = useState<any[] | null>(null);
+  
   const [userStudios, setUserStudios] = useState<any[] | null>(null);
   const [userDecades, setUserDecades] = useState<any[] | null>(null);
 
@@ -159,6 +180,85 @@ export default function ProfilePage() {
               setUserGenres ([]);
             }
 
+            {/* ---------- Loads and displays the user's selected duration ---------- */}
+            
+             try {
+              const {
+                data: { user },
+              } = await supabase.auth. getUser ();
+
+              if (!user) {
+              window.location.href = "/login";
+              return;
+              }
+
+              {/* Fetch user's saved duration */}
+
+              const { data: durationRows, error: durationError } = await supabase
+                .from ("user_durations")
+                .select ("min_duration, max_duration")
+                .eq ("user_id", user.id)
+                .maybeSingle ();
+
+              if (durationError || !durationRows) {
+                setUserDurations (null);
+                return;
+              }
+
+              setUserDurations (durationRows);
+
+            } catch (err) {
+              console.error (err);
+              setUserDurations (null);
+            }
+
+            {/* ---------- Loads and displays the user's selected decades and keywords ---------- */}
+
+            try {
+              const {
+                data: { user },
+              } = await supabase.auth. getUser ();
+
+              if (!user) {
+              window.location.href = "/login";
+              return;
+              }
+
+              {/* Fetch user's saved decades */}
+
+              const { data: decadeRows, error: decadeError } = await supabase
+                .from ("user_decades")
+                .select ("decade_label")
+                .eq ("user_id", user.id);
+
+              if (decadeError || !decadeRows) {
+                setUserDecades ([]);
+                return;
+              } 
+
+              setUserDecades (decadeRows);
+
+              {/* Fetch user's saved keywords */}
+
+              const { data: keywordRows, error: keywordError } = await supabase
+                .from ("user_keywords")
+                .select ("keyword_name")
+                .eq ("user_id", user.id);
+
+              if (keywordError || !keywordRows) {
+                setUserKeywords ([]);
+                return;
+              }
+
+              setUserKeywords (keywordRows);
+
+            } catch (e) {
+              console.error (e);
+              setUserDecades ([]);
+              setUserKeywords ([]);
+            } finally {
+              setLoading (false);
+            }
 
     };
 
@@ -208,7 +308,7 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
+  }; 
 
   if (loading) {
     return (
@@ -227,7 +327,7 @@ export default function ProfilePage() {
     {id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
     {id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
     {id: 5, title: "Keywords", card_name: "keywords", ref:"/pref_keywords"},
-    {id: 6, title: "Durations", card_name: "durations", ref:"/pref_durations"},
+    {id: 6, title: "Duration", card_name: "durations", ref:"/pref_durations"},
     {id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
     {id: 8, title: "Decades", card_name: "decades", ref:"/pref_decades"},
   ];
@@ -322,7 +422,7 @@ export default function ProfilePage() {
 
             </div>
 
-            {/* Displays providers that the user has selected on card */}
+            {/* ---------- Displays providers that the user has selected on card ---------- */}
             {card.card_name == "providers" && (
               <>
                 {loadingServices ? (
@@ -336,6 +436,8 @@ export default function ProfilePage() {
                           alt = {provider.name}
                           className='h-5'/>
                         )}
+
+                        {/* test out taking out provider name, leaving only providers image to save space */}
                         <span className='text-xs text-slate-300'> {provider.name}</span>
                       </div>
                     ))}
@@ -346,9 +448,9 @@ export default function ProfilePage() {
               </>
             )}
             
-            {/* couldnt figure out how to do above part dynamically for each card gonna implement each one individually for now */}
+            {/* couldnt figure out how to do above part dynamically for each card, gonna implement each one individually for now */}
 
-            {/* Displays genres, that the user has selected, on the card */}
+            {/* ---------- Displays genres, that the user has selected, on the card ---------- */}
 
             {card.card_name == "genres" && (
               <>
@@ -367,6 +469,62 @@ export default function ProfilePage() {
                 )}
               </>
             )}
+
+             {/* ---------- Displays the duration range, that the user has selected, on the card ---------- */}
+
+            {card.card_name == "durations" && (
+              <>
+                {!userDurations ? (
+                  <p className='text slate-400 text-sm'>Loading duration...</p>
+                ) : (
+                  <p className='flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full text-xs text-slate-300 inline-block border border-slate-700'>
+                      {userDurations?.min_duration} - {userDurations?.max_duration} minutes
+                  </p>
+                )}
+              </>
+            )}
+
+            {/* ---------- Displays the decades, that the user has selected, on the card ---------- */}
+
+            {card.card_name == "decades" && (
+              <>
+                {!userDecades ? (
+                  <p className='text slate-400 text-sm'>Loading decades...</p>
+                ) : userDecades.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {userDecades.map ((decade) => (
+                      <div key = {decade.decade_label} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        <span className='text-xs text-slate-300'> {decade.decade_label}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Decades Selected</p>
+                )}
+              </>
+            )}
+
+            {/* ---------- Displays the keywords, that the user has selected, on the card ---------- */}
+
+            {card.card_name == "keywords" && (
+              <>
+                {!userKeywords ? (
+                  <p className='text slate-400 text-sm'>Loading keywords...</p>
+                ) : userKeywords.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {userKeywords.map ((keyword) => (
+                      <div key = {keyword.keyword_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        <span className='text-xs text-slate-300'> {keyword.keyword_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Keywords Selected</p>
+                )}
+              </>
+            )}
+
+            {/* ---------- Displays the ______ , that the user has selected, on the card ---------- */}
 
           </section>
         ))}
