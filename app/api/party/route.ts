@@ -55,7 +55,9 @@ async function fetchRandomMovies(count: number) {
 export async function POST(req: Request) {
   const supabase = sb(req);
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
@@ -68,41 +70,39 @@ export async function POST(req: Request) {
   }
 
   const name = (body?.name ?? "Movie Night").toString();
-  const movieCount = Number(body?.movieCount) || 10; // default 10 movies at a time per round
+  const movieCount = Number(body?.movieCount) || 10;
 
-  // 1) create party
+  // 1) create party, NOTE: set current_round_num = 1
   const { data: partyRow, error: partyErr } = await supabase
     .from("parties")
-    .insert({ name })
+    .insert({ name, current_round_num: 1 })
     .select()
     .single();
 
   if (partyErr || !partyRow) {
     return NextResponse.json(
       { ok: false, error: partyErr?.message ?? "Failed to create party" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const party = partyRow;
 
-  // 2) add creator as host in party_members
-  const { error: memberErr } = await supabase
-    .from("party_members")
-    .insert({
-      party_id: party.id,
-      user_id: user.id,
-      role: "host",
-    });
+  // 2) add creator as host
+  const { error: memberErr } = await supabase.from("party_members").insert({
+    party_id: party.id,
+    user_id: user.id,
+    role: "host",
+  });
 
   if (memberErr) {
     return NextResponse.json(
       { ok: false, error: memberErr.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // 3) initialize round 1 (NEW)
+  // 3) initialize round 1
   const { data: roundRow, error: roundErr } = await supabase
     .from("rounds")
     .insert({
@@ -114,11 +114,14 @@ export async function POST(req: Request) {
     .single();
 
   if (roundErr || !roundRow) {
-    return NextResponse.json({ ok: false, error: "failed to create Round 1" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "failed to create Round 1" },
+      { status: 400 },
+    );
   }
   const round_id = roundRow.round_id;
 
-  // 4) fetch random movies from TMDB and seed party_candidates
+  // 4) seed first-round candidates from TMDB
   try {
     const candidates = await fetchRandomMovies(movieCount);
     const rows = candidates.map((c) => ({
@@ -127,24 +130,23 @@ export async function POST(req: Request) {
       media_type: c.media_type,
       title: c.title,
       poster_path: c.poster_path,
-      round_id, // NEW
+      round_id,
+      is_match: false,
     }));
 
-    const { error: candErr } = await supabase
-      .from("party_candidates")
-      .insert(rows);
+    const { error: candErr } = await supabase.from("party_candidates").insert(rows);
 
     if (candErr) {
       return NextResponse.json(
         { ok: false, error: candErr.message },
-        { status: 400 }
+        { status: 400 },
       );
     }
   } catch (err: any) {
     console.error("Error seeding TMDB movies:", err);
     return NextResponse.json(
       { ok: false, error: err?.message ?? "Failed to seed movies" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
