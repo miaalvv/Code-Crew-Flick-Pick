@@ -20,17 +20,6 @@ type Duration = {
   max_duration: number;
 };
 
-type Decade = {
-    label: string;
-    start: number;
-    end: number;
-}
-
-type Keyword = {
-    id: number;
-    name: string;
-};
-
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [initialDisplayName, setInitialDisplayName] = useState<string | null>(null);

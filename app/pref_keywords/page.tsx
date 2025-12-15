@@ -1,8 +1,7 @@
 'use client';
 
-import { Key, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from '../_lib/supabaseClient';
-import { ins, tr } from "framer-motion/client";
 
 type Keyword = {
     id: number;
@@ -37,21 +36,37 @@ export default function KeywordPreferencePage () {
 
             setUserId (user.id);
 
-            {/* fetches keywords from movieid, implement more movie ids to get more keywords */}
-            const res = await fetch ('/api/tmdb/keywords?movieId=533533')
-            const json = await res.json ();
+            
+            {/* fetches keywords from movieid, with more movie ids to get more keywords */}
 
-            if (!json.ok) {
-                setError ("Failed to load keywords")
-                setLoading (false);
-                return;
+            const movieIds = [533533, 9702, 238, 155, 680, 408, 756, 19995, 9799, 9615, 584, 64328]; 
+
+            const allKeywords: Keyword [] = [];
+
+            for (const movieId of movieIds) {
+                const res = await fetch (`/api/tmdb/keywords?movieId=${movieId}`)
+                const json = await res.json ();
+            
+
+                if (!json.ok) {
+                    setError ("Failed to load keywords")
+                    setLoading (false);
+                    return;
+                }
+
+                allKeywords.push (...json.keywords);
             }
 
-            const list: Keyword [] = json.keywords.sort ((a: Keyword, b: Keyword) =>
-                    a.name.localeCompare (b.name)
-            );
+            {/* Removes duplicate keywords */}
 
-            setKeywords (list)
+            const uniqueKeywords = Array.from (new Set (allKeywords.map (k => k.id)))
+                .map (id => allKeywords.find (k => k.id === id)!);
+           
+            {/* Sets keywords and sorts them alphabetically */}
+
+            setKeywords (uniqueKeywords.sort ((a: Keyword, b: Keyword) =>
+                a.name.localeCompare (b.name)
+            ));
 
             {/* Loads user's selected keywords */}
 
@@ -68,6 +83,7 @@ export default function KeywordPreferencePage () {
             
         }) ();
     }, []);
+
 
     const toggle = (id: number) => {
         setSelected ((prev) => {
