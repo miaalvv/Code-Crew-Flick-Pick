@@ -313,11 +313,11 @@ export default function ProfilePage() {
   const cards = [
     {id: 1, title: "Watch Providers", card_name: "providers", ref:"/preferences"},
     {id: 2, title: "Genres", card_name: "genres", ref:"/pref_genres"},
-    {id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
-    {id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
+    //{id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
+    //{id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
     {id: 5, title: "Keywords", card_name: "keywords", ref:"/pref_keywords"},
     {id: 6, title: "Duration", card_name: "durations", ref:"/pref_durations"},
-    {id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
+    //{id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
     {id: 8, title: "Decades", card_name: "decades", ref:"/pref_decades"},
   ];
 
