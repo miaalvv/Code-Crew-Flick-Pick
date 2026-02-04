@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { Key, useEffect, useState } from "react";
 import { supabase } from '../_lib/supabaseClient';
 
 type Keyword = {
@@ -37,36 +37,22 @@ export default function KeywordPreferencePage () {
             setUserId (user.id);
 
             
-            {/* fetches keywords from movieid, with more movie ids to get more keywords */}
+            {/* fetches keywords from database*/}
 
-            const movieIds = [533533, 9702, 238, 155, 680, 408, 756, 19995, 9799, 9615, 584, 64328]; 
+            const res = await fetch ("/api/tmdb/keywords");
+            const json = await res.json ();
 
-            const allKeywords: Keyword [] = [];
-
-            for (const movieId of movieIds) {
-                const res = await fetch (`/api/tmdb/keywords?movieId=${movieId}`)
-                const json = await res.json ();
-            
-
-                if (!json.ok) {
-                    setError ("Failed to load keywords")
-                    setLoading (false);
-                    return;
-                }
-
-                allKeywords.push (...json.keywords);
+            if (!json.ok) {
+                setError ("Failed to load keywords")
+                setLoading (false);
+                return;
             }
 
-            {/* Removes duplicate keywords */}
-
-            const uniqueKeywords = Array.from (new Set (allKeywords.map (k => k.id)))
-                .map (id => allKeywords.find (k => k.id === id)!);
-           
-            {/* Sets keywords and sorts them alphabetically */}
-
-            setKeywords (uniqueKeywords.sort ((a: Keyword, b: Keyword) =>
-                a.name.localeCompare (b.name)
-            ));
+            setKeywords (
+                (json.keywords as Keyword []).sort ((a, b) =>
+                    a.name.localeCompare (b.name)
+                )
+            );
 
             {/* Loads user's selected keywords */}
 
