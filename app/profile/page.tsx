@@ -20,6 +20,12 @@ type Duration = {
   max_duration: number;
 };
 
+type Actor = {
+  actor_id: number;
+  actor_name: string;
+  actor_popularity: number;
+}
+
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [initialDisplayName, setInitialDisplayName] = useState<string | null>(null);
@@ -42,7 +48,7 @@ export default function ProfilePage() {
   const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
 
   {/* useState<any[]> used as a placeholder until I make a type for each of these prefs */}
-  const [userActors, setUserActors] = useState<any[] | null>(null);
+  const [userActors, setUserActors] = useState<Actor[] | null>(null);
   const [userDirectors, setUserDirectors] = useState<any[] | null>(null);
   
   const [userStudios, setUserStudios] = useState<any[] | null>(null);
@@ -249,6 +255,38 @@ export default function ProfilePage() {
               setLoading (false);
             }
 
+            {/* ---------- Loads and displays the user's selected actors on card ---------- */}
+
+            try {
+              const {
+                data: { user },
+              } = await supabase.auth. getUser ();
+
+              if (!user) {
+              window.location.href = "/login";
+              return;
+              }
+
+              {/* Fetch user's saved actors */}
+
+              const { data: actorRows, error: actorError } = await supabase
+                .from ("user_actors")
+                .select ("actor_id, actor_name, actor_popularity")
+                .eq ("user_id", user.id);
+
+              if (actorError || !actorRows) {
+                setUserActors ([]);
+                return;
+              }
+
+              setUserActors (actorRows);
+
+            } catch (err) {
+              console.error (err);
+              setUserActors ([]);
+            }
+            
+
     };
 
     load();
@@ -313,7 +351,7 @@ export default function ProfilePage() {
   const cards = [
     {id: 1, title: "Watch Providers", card_name: "providers", ref:"/preferences"},
     {id: 2, title: "Genres", card_name: "genres", ref:"/pref_genres"},
-    //{id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
+    {id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
     //{id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
     {id: 5, title: "Keywords", card_name: "keywords", ref:"/pref_keywords"},
     {id: 6, title: "Duration", card_name: "durations", ref:"/pref_durations"},
@@ -513,7 +551,25 @@ export default function ProfilePage() {
               </>
             )}
 
-            {/* ---------- Displays the ______ , that the user has selected, on the card ---------- */}
+            {/* ---------- Displays the actors, that the user has selected, on the card ---------- */}
+
+            {card.card_name == "actors" && (
+              <>
+                {!userActors ? (
+                  <p className='text slate-400 text-sm'>Loading actors...</p>
+                ) : userActors.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {userActors.map ((actor) => (
+                      <div key = {actor.actor_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        <span className='text-xs text-slate-300'> {actor.actor_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Actors Selected</p>
+                )}
+              </>
+            )}
 
           </section>
         ))}
