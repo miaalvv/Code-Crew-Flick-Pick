@@ -26,6 +26,17 @@ type Actor = {
   actor_popularity: number;
 }
 
+type Director = {
+  director_id: number;
+  director_name: string;
+  director_popularity: number;
+}
+
+type Studio = {
+  studio_id: number;
+  studio_name: string;
+}
+
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [initialDisplayName, setInitialDisplayName] = useState<string | null>(null);
@@ -47,11 +58,16 @@ export default function ProfilePage() {
   {/* Keywords */}
   const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
 
-  {/* useState<any[]> used as a placeholder until I make a type for each of these prefs */}
+  {/* Actors */}
   const [userActors, setUserActors] = useState<Actor[] | null>(null);
-  const [userDirectors, setUserDirectors] = useState<any[] | null>(null);
+
+  {/* Directors */}
+  const [userDirectors, setUserDirectors] = useState<Director[] | null>(null);
   
-  const [userStudios, setUserStudios] = useState<any[] | null>(null);
+  {/* Studios */}
+  const [userStudios, setUserStudios] = useState<Studio[] | null>(null);
+
+  {/* Decades */}
   const [userDecades, setUserDecades] = useState<any[] | null>(null);
 
   useEffect(() => {
@@ -285,6 +301,68 @@ export default function ProfilePage() {
               console.error (err);
               setUserActors ([]);
             }
+
+            {/* ---------- Loads and displays the user's selected directors on card ---------- */}
+
+            try {
+              const {
+                data: { user },
+              } = await supabase.auth. getUser ();
+
+              if (!user) {
+              window.location.href = "/login";
+              return;
+              }
+
+              {/* Fetch user's saved directors */}
+
+              const { data: directorRows, error: directorError } = await supabase
+                .from ("user_directors")
+                .select ("director_id, director_name, director_popularity")
+                .eq ("user_id", user.id);
+
+              if (directorError || !directorRows) {
+                setUserDirectors ([]);
+                return;
+              }
+
+              setUserDirectors (directorRows);
+
+            } catch (err) {
+              console.error (err);
+              setUserDirectors ([]);
+            }
+
+            {/* ---------- Loads and displays the user's selected studios on card ---------- */}
+
+            try {
+              const {
+                data: { user },
+              } = await supabase.auth. getUser ();
+
+              if (!user) {
+              window.location.href = "/login";
+              return;
+              }
+
+              {/* Fetch user's saved studios */}
+
+              const { data: studioRows, error: studioError } = await supabase
+                .from ("user_studios")
+                .select ("studio_id, studio_name")
+                .eq ("user_id", user.id);
+
+              if (studioError || !studioRows) {
+                setUserStudios ([]);
+                return;
+              }
+
+              setUserStudios (studioRows);
+
+            } catch (err) {
+              console.error (err);
+              setUserStudios ([]);
+            }
             
 
     };
@@ -352,10 +430,10 @@ export default function ProfilePage() {
     {id: 1, title: "Watch Providers", card_name: "providers", ref:"/preferences"},
     {id: 2, title: "Genres", card_name: "genres", ref:"/pref_genres"},
     {id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
-    //{id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
+    {id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
     {id: 5, title: "Keywords", card_name: "keywords", ref:"/pref_keywords"},
     {id: 6, title: "Duration", card_name: "durations", ref:"/pref_durations"},
-    //{id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
+    {id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
     {id: 8, title: "Decades", card_name: "decades", ref:"/pref_decades"},
   ];
 
@@ -570,6 +648,48 @@ export default function ProfilePage() {
                 )}
               </>
             )}
+
+             {/* ---------- Displays the directors, that the user has selected, on the card ---------- */}
+
+            {card.card_name == "directors" && (
+              <>
+                {!userDirectors ? (
+                  <p className='text slate-400 text-sm'>Loading directors...</p>
+                ) : userDirectors.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {userDirectors.map ((director) => (
+                      <div key = {director.director_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        <span className='text-xs text-slate-300'> {director.director_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Directors Selected</p>
+                )}
+              </>
+            )}
+
+             {/* ---------- Displays studios, that the user has selected, on the card ---------- */}
+
+            {card.card_name == "studios" && (
+              <>
+                {!userStudios ? (
+                  <p className='text slate-400 text-sm'>Loading studios...</p>
+                ) : userStudios.length > 0 ? (
+                  <div className='flex flex-wrap gap-2 mt-1'>
+                    {userStudios.map ((studio) => (
+                      <div key = {studio.studio_id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
+                        <span className='text-xs text-slate-300'> {studio.studio_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-slate-400 text-sm'>No Studios Selected</p>
+                )}
+              </>
+            )}
+
+
 
           </section>
         ))}

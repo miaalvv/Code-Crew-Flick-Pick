@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from '../_lib/supabaseClient';
 
-type Actor = {
+type Director = {
     id: number;
     name: string;
     popularity: number;
 };
 
-export default function ActorPreferencePage () {
+export default function DirectorPreferencePage () {
 
     const [ loading, setLoading] = useState (true);
     const [ userId, setUserId] = useState<string | null>(null);
-    const [ actors, setActors] = useState<Actor[]>([]);
+    const [ directors, setDirectors] = useState<Director[]>([]);
     const [ selected, setSelected] = useState<Set<number>> (new Set ());
     const [ error, setError] = useState('');
     const [ saving, setSaving] = useState(false);
@@ -39,32 +39,32 @@ export default function ActorPreferencePage () {
             setUserId (user.id);
 
             
-            {/* fetches actors from database*/}
+            {/* fetches directors from database*/}
 
-            const res = await fetch ("/api/tmdb/actors");
+            const res = await fetch ("/api/tmdb/directors");
             const json = await res.json ();
 
             if (!json.ok) {
-                setError ("Failed to load actors")
+                setError ("Failed to load directors")
                 setLoading (false);
                 return;
             }
 
-            setActors (
-                (json.actors as Actor []).sort ((a, b) =>
+            setDirectors (
+                (json.directors as Director []).sort ((a, b) =>
                     a.name.localeCompare (b.name)
                 )
             );
 
-            {/* Loads user's selected actors */}
+            {/* Loads user's selected directors */}
 
             const { data: rows, error: selError } = await supabase
-                .from ("user_actors")
-                .select ("actor_id")
+                .from ("user_directors")
+                .select ("director_id")
                 .eq ("user_id", user.id);
 
             if (!selError && rows) {
-                setSelected (new Set ((rows as { actor_id: number } []).map ((r) => r.actor_id)));
+                setSelected (new Set ((rows as { director_id: number } []).map ((r) => r.director_id)));
             }
 
             setLoading (false);
@@ -90,7 +90,7 @@ export default function ActorPreferencePage () {
         setSaved (false);
 
         const {error: delError } = await supabase
-            .from ("user_actors")
+            .from ("user_directors")
             .delete ()
             .eq ("user_id", userId);
 
@@ -100,14 +100,14 @@ export default function ActorPreferencePage () {
             return;
         }
 
-        const payload = Array.from (selected).map ((actor_id) => {
-            const name = actors.find ((a) => a.id === actor_id)?.name || '';
-            return { user_id: userId, actor_id, actor_name: name};
+        const payload = Array.from (selected).map ((director_id) => {
+            const name = directors.find ((d) => d.id === director_id)?.name || '';
+            return { user_id: userId, director_id, director_name: name};
         });
 
         if (payload.length > 0) {
             const { error: insError } = await supabase
-                .from ("user_actors")
+                .from ("user_directors")
                 .insert (payload);
 
             if (insError) {
@@ -125,14 +125,14 @@ export default function ActorPreferencePage () {
 
     };
 
-    const filteredActors = actors.filter ((actor => 
-        actor.name.toLowerCase ().includes (searchTerm.toLowerCase ())
+    const filteredDirectors = directors.filter ((director => 
+        director.name.toLowerCase ().includes (searchTerm.toLowerCase ())
         ));
 
     if (loading) {
         return (
             <div className="flex items-center justify-center mt-10">
-                <p className="text-sm text-slate-400">Loading your Actors...</p>
+                <p className="text-sm text-slate-400">Loading your Directors...</p>
             </div>
         );
     }
@@ -146,16 +146,16 @@ export default function ActorPreferencePage () {
                         <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-3 py-1 text-[11px] font-medium text-pink-200">
 
                             <span className="h-2 w-2 rounded-full bg-pink-400" />
-                            Pick Actors
+                            Pick Directors
 
                         </div>
 
                         <h1 className="mt-2 text-xl sm:text-2xl font-semibold tracking-tight">
-                            Choose your actors
+                            Choose your directors
                         </h1>
 
                         <p className="mt-2 text-xs sm:text-sm text-slate-300 max-w-xl">
-                            We&apos;ll filter movies that star the actors you select 
+                            We&apos;ll filter movies that were directed by the directors you select 
                         </p>
 
                     </div>
@@ -172,7 +172,7 @@ export default function ActorPreferencePage () {
                 <div className="mb-4">
                     <input 
                         type="text"
-                        placeholder="Search for actors"
+                        placeholder="Search for directors"
                         className="w-full rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm (e.target.value)}
@@ -187,23 +187,23 @@ export default function ActorPreferencePage () {
                     </div>
                 )}
 
-                {/* Actor selection grid */}
+                {/* Director selection grid */}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {filteredActors.map ((a) => {
-                        const on = selected.has (a.id);
+                    {filteredDirectors.map ((d) => {
+                        const on = selected.has (d.id);
                         return (
                             <button
-                                key={a.id}
+                                key={d.id}
                                 type="button"
-                                onClick={() => toggle(a.id)}
+                                onClick={() => toggle(d.id)}
                                 className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left text-xs sm:text-sm transition ${
                                 on
                                     ? 'bg-white/10 border-white shadow-md shadow-black/30'
                                     : 'border-white/20 hover:border-white/60 hover:bg-white/5'
                                 }`}
                             >
-                                <span className="truncate">{a.name}</span>
+                                <span className="truncate">{d.name}</span>
                             </button>
                         );
                     })}
@@ -214,7 +214,7 @@ export default function ActorPreferencePage () {
                 <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
 
                     <p className="hidden sm:block">
-                        Pick your favorite actors to filter movies. 
+                        Pick your favorite directors to filter movies from. 
                     </p>
 
                     <button
@@ -222,7 +222,7 @@ export default function ActorPreferencePage () {
                         disabled={saving}
                         className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-60 transition"
                     >
-                        {saving ? 'Saving…' : 'Save actors'}
+                        {saving ? 'Saving…' : 'Save directors'}
                     </button>
 
                 </div>
