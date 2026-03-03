@@ -1,12 +1,9 @@
+// app/_lib/partyApi.ts
 "use client";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/app/_lib/supabaseClient";
 
 async function authHeader() {
-  const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Not signed in");
   return { Authorization: `Bearer ${session.access_token}` };
 }

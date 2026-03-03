@@ -1,3 +1,4 @@
+// app/party/new/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -55,10 +56,10 @@ export default function CreatePartyPage() {
               Copy
             </button>
             <button
-              onClick={() => router.push(`/party/swipe?party=${partyId}`)}
+              onClick={() => router.push(`/party/lobby?party=${partyId}`)}
               className="rounded border px-3 py-1 text-sm"
             >
-              Go to Swipe
+              Go to Lobby
             </button>
           </div>
         </div>
