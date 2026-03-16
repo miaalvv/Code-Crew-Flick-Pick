@@ -11,47 +11,6 @@ function sb(req: Request) {
   );
 }
 
-async function fetchRandomMovies(count: number) {
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) throw new Error("TMDB_API_KEY not configured");
-
-  const movies: any[] = [];
-
-  while (movies.length < count) {
-    // pick a random page of popular movies (1–50 is safe enough)
-    const page = Math.floor(Math.random() * 50) + 1;
-
-    const res = await fetch(
-      `https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=${page}&sort_by=popularity.desc`,
-      {
-        headers: {
-          accept: "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`TMDB error: ${res.status} ${text}`);
-    }
-
-    const data = await res.json();
-    for (const m of data.results ?? []) {
-      movies.push(m);
-      if (movies.length >= count) break;
-    }
-  }
-
-  // map to our candidate shape
-  return movies.slice(0, count).map((m) => ({
-    tmdb_id: m.id,
-    media_type: "movie" as const,
-    title: m.title ?? m.name ?? "Untitled",
-    poster_path: m.poster_path ?? null,
-  }));
-}
-
 export async function POST(req: Request) {
   const supabase = sb(req);
 
@@ -60,20 +19,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    body = {};
-  }
+  let body: any = {};
+  try { body = await req.json(); } catch {}
 
   const name = (body?.name ?? "Movie Night").toString();
-  const movieCount = Number(body?.movieCount) || 10; // default 10 movies at a time per round
 
-  // 1) create party
+  // 1) create party in "lobby" state, with 0 rounds started
   const { data: partyRow, error: partyErr } = await supabase
     .from("parties")
-    .insert({ name })
+    .insert({
+      name,
+      session_state: "lobby",
+      current_round_num: 0,
+      owner_id: user.id,      // optional
+      created_by: user.id,    // optional
+    })
     .select()
     .single();
 
@@ -84,73 +44,22 @@ export async function POST(req: Request) {
     );
   }
 
-  const party = partyRow;
-
-  // 2) add creator as host in party_members
+  // 2) add creator as host
   const { error: memberErr } = await supabase
     .from("party_members")
     .insert({
-      party_id: party.id,
+      party_id: partyRow.id,
       user_id: user.id,
       role: "host",
     });
 
   if (memberErr) {
-    return NextResponse.json(
-      { ok: false, error: memberErr.message },
-      { status: 400 }
-    );
-  }
-
-  // 3) initialize round 1 (NEW)
-  const { data: roundRow, error: roundErr } = await supabase
-    .from("rounds")
-    .insert({
-      party_id: party.id,
-      round_num: 1,
-      is_active: true,
-    })
-    .select()
-    .single();
-
-  if (roundErr || !roundRow) {
-    return NextResponse.json({ ok: false, error: "failed to create Round 1" }, { status: 400 });
-  }
-  const round_id = roundRow.round_id;
-
-  // 4) fetch random movies from TMDB and seed party_candidates
-  try {
-    const candidates = await fetchRandomMovies(movieCount);
-    const rows = candidates.map((c) => ({
-      party_id: party.id,
-      tmdb_id: c.tmdb_id,
-      media_type: c.media_type,
-      title: c.title,
-      poster_path: c.poster_path,
-      round_id, // NEW
-    }));
-
-    const { error: candErr } = await supabase
-      .from("party_candidates")
-      .insert(rows);
-
-    if (candErr) {
-      return NextResponse.json(
-        { ok: false, error: candErr.message },
-        { status: 400 }
-      );
-    }
-  } catch (err: any) {
-    console.error("Error seeding TMDB movies:", err);
-    return NextResponse.json(
-      { ok: false, error: err?.message ?? "Failed to seed movies" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: memberErr.message }, { status: 400 });
   }
 
   return NextResponse.json({
     ok: true,
-    party_id: party.id,
-    invite_code: party.invite_code,
+    party_id: partyRow.id,
+    invite_code: partyRow.invite_code,
   });
 }

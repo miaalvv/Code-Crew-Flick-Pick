@@ -1,3 +1,4 @@
+// app/_lib/swipeApi.ts
 "use client";
 import { createClient } from "@supabase/supabase-js";
 
@@ -24,13 +25,21 @@ export async function getNextCard(party_id: string) {
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
     body: JSON.stringify({ party_id }),
   });
+
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || "Failed to load next card");
+  if (!res.ok) {
+    const err: any = new Error(data?.error || "Failed to load next card");
+    err.status = res.status;
+    err.payload = data;
+    throw err;
+  }
+
   return data as { next: Candidate | null };
 }
 
 export async function sendSwipe(input: {
   party_id: string;
+  round_id?: string | null; // pass from client to avoid active-round race
   tmdb_id: number;
   media_type: "movie" | "tv";
   title: string;
@@ -42,7 +51,14 @@ export async function sendSwipe(input: {
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
     body: JSON.stringify(input),
   });
+
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || "Failed to submit swipe");
+  if (!res.ok) {
+    const err: any = new Error(data?.error || "Failed to submit swipe");
+    err.status = res.status;  // lets UI handle 409 gracefully
+    err.payload = data;       // optional (handy for debugging)
+    throw err;
+  }
+
   return data;
 }
