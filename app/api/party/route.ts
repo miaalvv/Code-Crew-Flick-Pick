@@ -333,6 +333,8 @@ export async function POST(req: Request) {
     );
   }
 
+  const party = partyRow;
+
   // 2) add creator as host
   const { error: memberErr } = await supabase
     .from("party_members")
