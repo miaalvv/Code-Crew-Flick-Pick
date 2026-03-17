@@ -1,5 +1,7 @@
+// app/party/id/page.tsx
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '../../_lib/supabaseClient';
 
@@ -13,6 +15,7 @@ type Card = {
 
 export default function PartyPage({ params }: { params: { id: string }}) {
   const partyId = params.id;
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [invite, setInvite] = useState<string>('');
   const [cards, setCards] = useState<Card[]>([]);
@@ -22,16 +25,30 @@ export default function PartyPage({ params }: { params: { id: string }}) {
   const [providerIds, setProviderIds] = useState<number[]>([]);
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // get user
+      const userRes = await supabase.auth.getUser();
+      const user = (userRes as any)?.data?.user ?? (userRes as any)?.user ?? null;
       if (!user) { window.location.href = '/login'; return; }
       setUserId(user.id);
 
-      // make sure I'm a member
-      await supabase.from('party_members').upsert({ party_id: partyId, user_id: user.id });
+      // make sure I'm a member (upsert to add if missing)
+      await supabase.from('party_members').upsert({ party_id: partyId, user_id: user.id, role: 'member' });
 
-      // fetch invite code for sharing
-      const { data: party } = await supabase.from('parties').select('invite_code').eq('id', partyId).single();
-      setInvite(party?.invite_code ?? '');
+      // fetch party row including session_state
+      const { data: partyRow } = await supabase
+        .from('parties')
+        .select('invite_code, session_state')
+        .eq('id', partyId)
+        .maybeSingle();
+
+      // if party is in lobby, redirect to lobby UI
+      if ((partyRow as any)?.session_state === 'lobby') {
+        router.push(`/party/lobby?party=${partyId}`);
+        return;
+      }
+
+      // otherwise show invite code
+      setInvite((partyRow as any)?.invite_code ?? '');
 
       // load my services
       const { data: rows } = await supabase.from('user_services').select('provider_id').eq('user_id', user.id);

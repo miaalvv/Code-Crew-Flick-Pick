@@ -1,3 +1,4 @@
+// app/party/join/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,10 +14,12 @@ export default function JoinPartyPage() {
     setLoading(true); setError(null);
     try {
       const { party_id } = await joinParty(code.trim());
-      router.push(`/party/swipe?party=${party_id}`);
-    } catch (e:any) {
+      router.push(`/party/lobby?party=${party_id}`);
+    } catch (e: any) {
       setError(e.message ?? "Failed to join");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

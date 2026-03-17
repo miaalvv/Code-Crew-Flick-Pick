@@ -307,20 +307,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    body = {};
-  }
+  let body: any = {};
+  try { body = await req.json(); } catch {}
 
   const name = (body?.name ?? "Movie Night").toString();
   const movieCount = Number(body?.movieCount) || 10; // default 10 movies at a time per round (change this number to increase pool)
 
-  // 1) create party
+  // 1) create party in "lobby" state, with 0 rounds started
   const { data: partyRow, error: partyErr } = await supabase
     .from("parties")
-    .insert({ name })
+    .insert({
+      name,
+      session_state: "lobby",
+      current_round_num: 0,
+      owner_id: user.id,      // optional
+      created_by: user.id,    // optional
+    })
     .select()
     .single();
 
@@ -331,13 +333,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const party = partyRow;
-
-  // 2) add creator as host in party_members
+  // 2) add creator as host
   const { error: memberErr } = await supabase
     .from("party_members")
     .insert({
-      party_id: party.id,
+      party_id: partyRow.id,
       user_id: user.id,
       role: "host",
     });
@@ -402,7 +402,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    party_id: party.id,
-    invite_code: party.invite_code,
+    party_id: partyRow.id,
+    invite_code: partyRow.invite_code,
   });
 }
