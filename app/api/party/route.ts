@@ -408,3 +408,4 @@ export async function POST(req: Request) {
     invite_code: partyRow.invite_code,
   });
 }
+
