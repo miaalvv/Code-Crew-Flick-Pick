@@ -157,6 +157,20 @@ async function getMergedPreferences (
 
 }
 
+// Bug fixes and features that need to be implemented:
+// 1.) handle cases where user preferences are empty
+//    - right now if a user is missing even one category of preference, no movies are fetched at all
+//
+// 2.) fix users in party getting different movie pools and candidates
+//    - right now, two users get similar movies, but not the exact same pool, and some movies are the same but in a different order
+//
+// 3.) add more movies, to extract details from to increase the number of preferences
+//
+// 4.) add a search bar to preferences, like the ones in actors and directors
+//
+// 5.) move the save button for each preference to a better position, rather than at the bottom of each page
+//    - maybe add one at the top and bottom, or add it to the header, or add a footer thats always visible
+// 
  
 async function fetchMovieDetails (movieId: number, apiKey: string) {
   const headers = {
