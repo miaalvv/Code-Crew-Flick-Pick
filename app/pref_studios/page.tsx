@@ -120,7 +120,7 @@ export default function StudioPreferencePage () {
         setSaved (true);
 
         {/* Redirects back to profile */}
-        window.location.href = "/profile"
+        window.location.href = "/watch-preferences"
 
     };
 
@@ -159,11 +159,21 @@ export default function StudioPreferencePage () {
 
                     </div>
 
-                    {saved && (
-                        <span className="rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
-                            Saved
-                        </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => document.getElementById('save-studios')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            className="hidden sm:inline-flex items-center gap-2 rounded-full border border-pink-500/50 bg-pink-500/15 px-3.5 py-1.5 text-[11px] font-semibold text-pink-100 hover:border-pink-400 hover:bg-pink-500/25 transition"
+                        >
+                            <span className="text-sm font-bold leading-none">↓</span>
+                            Go to save
+                        </button>
+                        {saved && (
+                            <span className="rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
+                                Saved
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Search Bar */}
@@ -210,7 +220,7 @@ export default function StudioPreferencePage () {
 
                 {/* Section for the save button */}
                 
-                <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
+                <div id="save-studios" className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
 
                     <p className="hidden sm:block">
                         Pick your favorite studios to filter movies from. 
