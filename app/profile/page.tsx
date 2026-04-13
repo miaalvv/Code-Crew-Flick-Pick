@@ -508,8 +508,8 @@ export default function ProfilePage() {
             Preferences
       </div>
       
-      {/* Grid with 3 columns for cards */}
-      <div className='mt-4 grid grid-cols-3 gap-6 '>
+      {/* Grid with 2 columns for cards */}
+      <div className='mt-4 grid grid-cols-2 gap-10 min-h-[750px]'>
         {cards.map ((card) => (
 
           <section key={card.id} className='rounded-3xl bg-slate-900/80 border border-slate-700/70 p-4 shadow-md'>
@@ -517,7 +517,7 @@ export default function ProfilePage() {
             {/* flex allows card title and update button to be on same line */}
             <div className='flex items-start'>
 
-              <h2 className='text-lg font-semibold text-slate-100 mb-1'>{card.title}</h2>
+              <h2 className='text-xl font-semibold text-slate-100 mb-2'>{card.title}</h2>
 
               {/* card.ref pulls from const cards to allow each card to link to their own page */}
               <a className='ml-auto rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition'

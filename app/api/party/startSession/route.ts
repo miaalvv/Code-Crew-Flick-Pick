@@ -164,13 +164,10 @@ async function getMergedPreferences (
 // 2.) fix users in party getting different movie pools and candidates
 //    - right now, two users get similar movies, but not the exact same pool, and some movies are the same but in a different order
 //
-// 3.) add more movies, to extract details from to increase the number of preferences
+// 3.) add more movies to extract details from to increase the number of preferences
 //
-// 4.) add a search bar to preferences, like the ones in actors and directors
-//
-// 5.) move the save button for each preference to a better position, rather than at the bottom of each page
+// 4.) move the save button for each preference to a better position, rather than at the bottom of each page
 //    - maybe add one at the top and bottom, or add it to the header, or add a footer thats always visible
-// 
  
 async function fetchMovieDetails (movieId: number, apiKey: string) {
   const headers = {

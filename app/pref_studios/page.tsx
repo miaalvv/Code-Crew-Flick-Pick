@@ -18,6 +18,7 @@ export default function StudioPreferencePage () {
     const [ saving, setSaving] = useState(false);
     const [ saved, setSaved] = useState(false);
     const [ searchTerm, setSearchTerm] = useState('');
+    const [ sortDirection, setSortDirection] = useState <"asc" | "desc"> ("asc");
 
     useEffect (() => {
         (async () => {
@@ -128,6 +129,11 @@ export default function StudioPreferencePage () {
         studio.name.toLowerCase ().includes (searchTerm.toLowerCase ())
         );
 
+    const sortedStudios = [...filteredStudios].sort ((a, b) => {
+        const result = a.name.localeCompare (b.name);
+        return sortDirection === "asc" ? result : -result;
+    });
+
     if (loading) {
         return (
             <div className="flex items-center justify-center mt-10">
@@ -168,14 +174,25 @@ export default function StudioPreferencePage () {
 
                 {/* Search Bar */}
 
-                <div className="mb-4">
+                <div className="mb-4 flex flex-wrap sm:flex-nowrap gap-2 items-center">
                     <input 
                         type="text"
                         placeholder="Search for studios"
-                        className="w-full rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
+                        className="flex-1 min-w-0 rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm (e.target.value)}
                     />
+
+                    <button
+                        onClick={() => setSortDirection (sortDirection === "asc" ? "desc" : "asc")}
+                        title={sortDirection === "asc" ? "Sort Descending" : "Sort Ascending"}
+                        className="whitespace-nowrap rounded-full bg-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 transition"
+                        >
+                            <span className="text-sm">
+                                {sortDirection === "asc" ? "\u21E9" : "\u21E7"}
+                            </span>
+                        
+                        </button>
                 </div>
 
                 {/* Error message in case something went wrong */}
@@ -189,7 +206,7 @@ export default function StudioPreferencePage () {
                 {/* Studio selection grid */}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {filteredStudios.map ((s) => {
+                    {sortedStudios.map ((s) => {
                         const on = selected.has (s.id);
                         return (
                             <button

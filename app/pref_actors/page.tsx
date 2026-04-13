@@ -20,6 +20,7 @@ export default function ActorPreferencePage () {
     const [ saved, setSaved] = useState(false);
     const [ searchTerm, setSearchTerm] = useState('');
     const [ sortMethod, setSortMethod] = useState <"alphabetical" | "popularity"> ("alphabetical"); 
+    const [ sortDirection, setSortDirection] = useState <"asc" | "desc"> ("asc");
 
     useEffect (() => {
         (async () => {
@@ -130,9 +131,17 @@ export default function ActorPreferencePage () {
         actor.name.toLowerCase ().includes (searchTerm.toLowerCase ())
         ));
 
-    const sortedActors = sortMethod === 'popularity'
-        ? [...filteredActors].sort ((a, b) => b.popularity - a.popularity)
-        : filteredActors.sort ((a, b) => a.name.localeCompare (b.name));
+    const sortedActors = [...filteredActors].sort ((a, b) => {
+        let result = 0;
+
+        if (sortMethod === "popularity") {
+            result = a.popularity - b.popularity;
+        } else { 
+            result = a.name.localeCompare (b.name);
+        }
+
+        return sortDirection === "asc" ? result : -result;
+        });
 
     if (loading) {
         return (
@@ -174,20 +183,31 @@ export default function ActorPreferencePage () {
 
                 {/* Search Bar and Sort Button */}
 
-                <div className="mb-4">
+                <div className="mb-4 flex flex-wrap sm:flex-nowrap gap-2 items-center">
                     <input 
                         type="text"
                         placeholder="Search for actors"
-                        className="w-full max-w-[83%] rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
+                        className="flex-1 min-w-0 rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm (e.target.value)}
                     />
                     <button
                         onClick={() => setSortMethod (sortMethod === "alphabetical" ? "popularity" : "alphabetical")}
-                        className="ml-2 rounded-full bg-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 transition"
+                        className="whitespace-nowrap rounded-full bg-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 transition"
                     >
                         {sortMethod === "alphabetical" ? "Sort by Popularity" : "Sort Alphabetically"}
                     </button>
+
+                    <button
+                        onClick={() => setSortDirection (sortDirection === "asc" ? "desc" : "asc")}
+                        title={sortDirection === "asc" ? "Sort Descending" : "Sort Ascending"}
+                        className="whitespace-nowrap rounded-full bg-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 transition"
+                        >
+                            <span className="text-sm">
+                                {sortDirection === "asc" ? "\u21E9" : "\u21E7"}
+                            </span>
+                        
+                        </button>
                 </div>
 
                 {/* Error message in case something went wrong */}
