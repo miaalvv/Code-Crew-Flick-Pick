@@ -373,7 +373,7 @@ export default function DashboardPage() {
         <div className="mt-4">
           <a
             href="/watch-preferences"
-            className="inline-flex items-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-400 transition"
+            className="inline-flex items-center rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 transition"
           >
             Open watch preferences
           </a>

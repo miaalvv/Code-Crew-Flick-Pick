@@ -20,6 +20,34 @@ export async function POST(req: Request) {
     );
   }
 
+  const { data: party, error: partyError } = await supabase
+    .from("parties")
+    .select("current_round_num")
+    .eq("id", party_id)
+    .maybeSingle();
+
+  if (partyError) {
+    return NextResponse.json(
+      { ok: false, error: partyError.message },
+      { status: 400 }
+    );
+  }
+
+  const { data: latestRound, error: latestRoundError } = await supabase
+    .from("rounds")
+    .select("round_num")
+    .eq("party_id", party_id)
+    .order("round_num", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestRoundError) {
+    return NextResponse.json(
+      { ok: false, error: latestRoundError.message },
+      { status: 400 }
+    );
+  }
+
   // pick the most recent active round (if any). Use maybeSingle() so we don't throw
   const { data: round, error } = await supabase
     .from("rounds")
@@ -37,5 +65,10 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, round });
+  return NextResponse.json({
+    ok: true,
+    round,
+    current_round_num: party?.current_round_num ?? round?.round_num ?? null,
+    total_rounds: latestRound?.round_num ?? round?.round_num ?? null,
+  });
 }

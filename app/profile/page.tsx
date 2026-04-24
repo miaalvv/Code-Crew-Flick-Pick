@@ -581,24 +581,33 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex-1 space-y-2">
+            <p className="text-sm text-slate-300">
+              Pick an image, then save it to update your avatar across the app.
+            </p>
+            {avatarFile && (
+              <p className="text-xs text-slate-400 truncate">{avatarFile.name}</p>
+            )}
+            {avatarMessage && <span className="block text-xs text-emerald-300">{avatarMessage}</span>}
+            {avatarError && <span className="block text-xs text-rose-300">{avatarError}</span>}
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 pt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <input
               type="file"
               accept="image/*"
               onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-xs text-slate-200 file:mr-3 file:rounded-full file:border-0 file:bg-pink-500 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-white file:hover:bg-pink-400"
+              className="block w-full text-xs text-slate-200 file:mr-3 file:rounded-full file:border-0 file:bg-pink-500 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-white file:hover:bg-pink-400 sm:max-w-sm"
             />
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleAvatarUpload}
-                disabled={avatarUploading}
-                className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              >
-                {avatarUploading ? 'Uploading…' : 'Save avatar'}
-              </button>
-              {avatarMessage && <span className="text-xs text-emerald-300">{avatarMessage}</span>}
-              {avatarError && <span className="text-xs text-rose-300">{avatarError}</span>}
-            </div>
+            <button
+              type="button"
+              onClick={handleAvatarUpload}
+              disabled={avatarUploading}
+              className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition sm:self-end"
+            >
+              {avatarUploading ? 'Uploading…' : 'Save avatar'}
+            </button>
           </div>
         </div>
       </section>

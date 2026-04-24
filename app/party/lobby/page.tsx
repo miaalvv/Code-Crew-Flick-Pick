@@ -27,6 +27,7 @@ export default function LobbyPage() {
   const party_id = params.get("party") ?? "";
 
   const [members, setMembers] = useState<LobbyRow[]>([]);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const [sessionState, setSessionState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,7 +94,7 @@ export default function LobbyPage() {
 
     const { data, error } = await supabase
       .from("parties")
-      .select("session_state")
+      .select("session_state, invite_code")
       .eq("id", party_id)
       .maybeSingle();
 
@@ -104,6 +105,7 @@ export default function LobbyPage() {
 
     const state = data?.session_state ?? null;
     setSessionState(state);
+    setInviteCode(data?.invite_code ?? null);
 
     if (state === "in_progress") {
       router.push(`/party/swipe?party=${party_id}`);
@@ -299,9 +301,6 @@ export default function LobbyPage() {
     }
   }
 
-  const meReady =
-    members.find((m) => m.user_id === currentUserId)?.is_ready ?? false;
-
   return (
     <div className="mt-6 space-y-6 px-4">
       <section className="max-w-5xl mx-auto rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-4">
@@ -318,9 +317,11 @@ export default function LobbyPage() {
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-200">
             <div className="text-[11px] uppercase tracking-[0.08em] text-slate-400 font-semibold">
-              Party ID
+              Invite Code
             </div>
-            <div className="text-lg font-semibold text-slate-50 truncate max-w-[180px]">{party_id || "—"}</div>
+            <div className="text-lg font-semibold text-slate-50 truncate max-w-[180px]">
+              {inviteCode || "—"}
+            </div>
           </div>
         </div>
 
@@ -362,13 +363,26 @@ export default function LobbyPage() {
                       {m.user_id === currentUserId && <span>(you)</span>}
                     </div>
                   </div>
-                  <span
-                    className={`text-xs font-semibold ${
-                      m.is_ready ? "text-emerald-300" : "text-slate-500"
-                    }`}
-                  >
-                    {m.is_ready ? "Ready" : "Not ready"}
-                  </span>
+                  {m.user_id === currentUserId ? (
+                    <button
+                      onClick={toggleReady}
+                      className={`min-w-[88px] rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                        m.is_ready
+                          ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30 hover:bg-emerald-400"
+                          : "border border-slate-600 bg-slate-800 text-slate-100 hover:border-pink-400"
+                      }`}
+                    >
+                      {m.is_ready ? "Ready" : "Not ready"}
+                    </button>
+                  ) : (
+                    <span
+                      className={`text-xs font-semibold ${
+                        m.is_ready ? "text-emerald-300" : "text-slate-500"
+                      }`}
+                    >
+                      {m.is_ready ? "Ready" : "Not ready"}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -397,17 +411,6 @@ export default function LobbyPage() {
             </div>
 
             <div className="space-y-2">
-              <button
-                onClick={toggleReady}
-                className={`w-full rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  meReady
-                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-400"
-                    : "bg-slate-800 text-slate-100 border border-slate-600 hover:border-pink-400"
-                }`}
-              >
-                {meReady ? "Set as not ready" : "I'm ready"}
-              </button>
-
               {isHost && (
                 <button
                   onClick={handleStart}

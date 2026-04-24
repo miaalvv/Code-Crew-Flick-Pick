@@ -10,6 +10,8 @@ type CurrentRoundResponse = {
   ok: boolean;
   error?: string;
   round: RoundRow | null;
+  current_round_num?: number | null;
+  total_rounds?: number | null;
 };
 
 type CompleteRoundResponse = {
