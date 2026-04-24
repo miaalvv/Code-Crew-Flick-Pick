@@ -44,6 +44,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   {/* Watch Providers */}
   const [services, setServices] = useState<Provider[] | null>(null);
@@ -87,7 +92,7 @@ export default function ProfilePage() {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('display_name')
+          .select('display_name, avatar_url')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -104,6 +109,9 @@ export default function ProfilePage() {
             const prefix = user.email.split('@')[0];
             setDisplayName(prefix);
           }
+        }
+        if (profile?.avatar_url) {
+          setAvatarUrl(profile.avatar_url);
         }
       } catch (err) {
         console.error(err);
@@ -413,7 +421,55 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  }; 
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      setAvatarError('Please choose an image file first.');
+      return;
+    }
+    setAvatarError(null);
+    setAvatarMessage(null);
+    setAvatarUploading(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const fileExt = avatarFile.name.split('.').pop();
+      const path = `${user.id}-${Date.now()}.${fileExt ?? 'jpg'}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = publicUrlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      setAvatarMessage('Avatar updated!');
+    } catch (err: any) {
+      console.error(err);
+      setAvatarError(err.message ?? 'Failed to upload avatar.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -439,8 +495,8 @@ export default function ProfilePage() {
 
 
   return (
-    <div className="mt-4">
-      <section className="rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-6 max-w-xl">
+    <div className="mt-4 flex flex-col lg:flex-row gap-4 items-stretch">
+      <section className="flex-1 rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-6 w-full max-w-xl">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200">
             <span className="h-2 w-2 rounded-full bg-sky-400" />
@@ -451,7 +507,7 @@ export default function ProfilePage() {
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
             We&apos;ll use this display name on your dashboard and in parties. You&apos;ll
-            still log in with your email magic link.
+            still log in with your email.
           </p>
         </div>
 
@@ -499,9 +555,6 @@ export default function ProfilePage() {
           </div>
         </form>
       </section>
-      
-
-      {/* User Preferences */}
 
       <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200">
             <span className="h-2 w-2 rounded-full bg-sky-400" />
@@ -524,180 +577,63 @@ export default function ProfilePage() {
                 href={card.ref}>
                 Update
               </a>
+      {/* Avatar upload */}
+      <section className="flex-1 rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-4 w-full max-w-xl">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-3 py-1 text-[11px] font-medium text-pink-200">
+            <span className="h-2 w-2 rounded-full bg-pink-400" />
+            Avatar
+          </div>
+          <h2 className="text-lg font-semibold text-slate-100">Upload your avatar</h2>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+            This image will show in the app header and parties. Square images look best.
+          </p>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+          <div className="flex justify-center sm:justify-start">
+            <div className="w-full max-w-[220px] aspect-square rounded-full border border-slate-700 bg-slate-800 overflow-hidden flex items-center justify-center text-slate-300 text-2xl">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                (displayName || '🙂')[0]
+              )}
             </div>
+          </div>
 
-            {/* ---------- Displays providers that the user has selected on card ---------- */}
-            {card.card_name == "providers" && (
-              <>
-                {loadingServices ? (
-                  <p className='text slate-400 text-sm'>Loading providers...</p>
-                ) : services && services.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {services.map ((provider) => (
-                      <div key = {provider.id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        {provider.logo_path && (
-                          <img src = {`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
-                          alt = {provider.name}
-                          className='h-5'/>
-                        )}
-
-                        {/* test out taking out provider name, leaving only providers image to save space */}
-                        <span className='text-xs text-slate-300'> {provider.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Watch Providers Selected</p>
-                )}
-              </>
+          <div className="flex-1 space-y-2">
+            <p className="text-sm text-slate-300">
+              Pick an image, then save it to update your avatar across the app.
+            </p>
+            {avatarFile && (
+              <p className="text-xs text-slate-400 truncate">{avatarFile.name}</p>
             )}
-            
-            {/* couldnt figure out how to do above part dynamically for each card, gonna implement each one individually for now */}
+            {avatarMessage && <span className="block text-xs text-emerald-300">{avatarMessage}</span>}
+            {avatarError && <span className="block text-xs text-rose-300">{avatarError}</span>}
+          </div>
+        </div>
 
-            {/* ---------- Displays genres, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "genres" && (
-              <>
-                {!userGenres ? (
-                  <p className='text slate-400 text-sm'>Loading genres...</p>
-                ) : userGenres.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userGenres.map ((genre) => (
-                      <div key = {genre.genre_id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {genre.genre_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Genres Selected</p>
-                )}
-              </>
-            )}
-
-             {/* ---------- Displays the duration range, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "durations" && (
-              <>
-                {!userDurations ? (
-                  <p className='text slate-400 text-sm'>Loading duration...</p>
-                ) : (
-                  <p className='flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full text-xs text-slate-300 inline-block border border-slate-700'>
-                      {userDurations?.min_duration} - {userDurations?.max_duration} minutes
-                  </p>
-                )}
-              </>
-            )}
-
-            {/* ---------- Displays the decades, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "decades" && (
-              <>
-                {!userDecades ? (
-                  <p className='text slate-400 text-sm'>Loading decades...</p>
-                ) : userDecades.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userDecades.map ((decade) => (
-                      <div key = {decade.decade_label} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {decade.decade_label}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Decades Selected</p>
-                )}
-              </>
-            )}
-
-            {/* ---------- Displays the keywords, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "keywords" && (
-              <>
-                {!userKeywords ? (
-                  <p className='text slate-400 text-sm'>Loading keywords...</p>
-                ) : userKeywords.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userKeywords.map ((keyword) => (
-                      <div key = {keyword.keyword_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {keyword.keyword_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Keywords Selected</p>
-                )}
-              </>
-            )}
-
-            {/* ---------- Displays the actors, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "actors" && (
-              <>
-                {!userActors ? (
-                  <p className='text slate-400 text-sm'>Loading actors...</p>
-                ) : userActors.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userActors.map ((actor) => (
-                      <div key = {actor.actor_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {actor.actor_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Actors Selected</p>
-                )}
-              </>
-            )}
-
-             {/* ---------- Displays the directors, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "directors" && (
-              <>
-                {!userDirectors ? (
-                  <p className='text slate-400 text-sm'>Loading directors...</p>
-                ) : userDirectors.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userDirectors.map ((director) => (
-                      <div key = {director.director_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {director.director_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Directors Selected</p>
-                )}
-              </>
-            )}
-
-             {/* ---------- Displays studios, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "studios" && (
-              <>
-                {!userStudios ? (
-                  <p className='text slate-400 text-sm'>Loading studios...</p>
-                ) : userStudios.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userStudios.map ((studio) => (
-                      <div key = {studio.studio_id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {studio.studio_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Studios Selected</p>
-                )}
-              </>
-            )}
-
-
-
-          </section>
-        ))}
-
-      </div>
+        <div className="border-t border-white/10 pt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-xs text-slate-200 file:mr-3 file:rounded-full file:border-0 file:bg-pink-500 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-white file:hover:bg-pink-400 sm:max-w-sm"
+            />
+            <button
+              type="button"
+              onClick={handleAvatarUpload}
+              disabled={avatarUploading}
+              className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition sm:self-end"
+            >
+              {avatarUploading ? 'Uploading…' : 'Save avatar'}
+            </button>
+          </div>
+        </div>
+      </section>
 
     </div>
 
   );
 }
-

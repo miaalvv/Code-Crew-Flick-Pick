@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import Image from "next/image";
 import { supabase as globalSupabase } from "@/app/_lib/supabaseClient";
 
 const supabase =
@@ -57,6 +58,10 @@ export default function PartyResults() {
     const elapsed = (now - startedMs) / 1000;
     return Math.max(0, Math.ceil(durationSeconds - elapsed));
   }, [party?.results_started_at, now]);
+  const progressPct = useMemo(
+    () => Math.max(0, Math.min(100, ((durationSeconds - secondsLeft) / durationSeconds) * 100)),
+    [secondsLeft]
+  );
 
   // Load party + host
   useEffect(() => {
@@ -176,43 +181,116 @@ export default function PartyResults() {
   }, [secondsLeft, party?.session_state]);
 
   return (
-    <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Round Results</h1>
+    <div className="mt-6 space-y-6 px-4">
+      <section className="mx-auto max-w-5xl rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-3 py-1 text-[11px] font-medium text-pink-200">
+              <span className="h-2 w-2 rounded-full bg-pink-400" />
+              Results
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-50 sm:text-3xl">Round wrap-up</h1>
+              <p className="mt-1 max-w-2xl text-sm text-slate-300">
+                The group matches are in. The next round will start automatically once the timer finishes.
+              </p>
+            </div>
+          </div>
+
+          <div className="min-w-[150px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Round
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-slate-50">
+              {party?.current_round_num ?? "—"}
+            </div>
+          </div>
+        </div>
 
       {error && (
-        <div className="border border-red-300 text-red-700 rounded p-2">
+        <div className="mt-4 rounded-xl border border-rose-500/50 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
           {error}
         </div>
       )}
 
-      <div className="rounded border border-gray-700 p-3">
-        <div className="font-semibold">Next round in {secondsLeft}s</div>
-        <div className="text-sm text-gray-400">
-          Auto-advancing to next round...
+        <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr,1.1fr]">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-100">Auto-proceeding</div>
+              <div className="text-xs text-slate-400">{secondsLeft}s</div>
+            </div>
+
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-pink-500 via-amber-400 to-emerald-400 transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+
+            <p className="mt-4 text-sm text-slate-300">
+              {advancing ? "Starting the next round..." : "Get ready. Everyone will move back into swiping automatically."}
+            </p>
+
+            {isHost && (
+              <button
+                onClick={advanceNextRound}
+                disabled={advancing || !roundId}
+                className="mt-4 rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 transition hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {advancing ? "Advancing..." : "Start next round now"}
+              </button>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-100">Matched this round</div>
+              <div className="text-xs text-slate-400">{matches.length}</div>
+            </div>
+
+            {matches.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/40 px-4 py-6 text-center text-sm text-slate-400">
+                No group matches yet.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {matches.map((m) => (
+                  <div
+                    key={`${m.media_type}:${m.tmdb_id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3"
+                  >
+                    <div className="h-20 w-14 overflow-hidden rounded-xl bg-slate-900">
+                      {m.poster_path ? (
+                        <Image
+                          src={`https://image.tmdb.org/t/p/w300${m.poster_path}`}
+                          alt={m.title}
+                          width={120}
+                          height={180}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] text-slate-400">
+                          No poster
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-slate-100">{m.title}</div>
+                      <div className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
+                        {m.media_type}
+                      </div>
+                      <div className="mt-2 text-xs text-emerald-300">
+                        {m.like_count} like{m.like_count === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
-        {isHost && (
-          <button
-            onClick={advanceNextRound}
-            disabled={advancing || !roundId}
-            className="mt-3 rounded bg-indigo-600 text-white px-4 py-2 disabled:opacity-50"
-          >
-            {advancing ? "Advancing..." : "Next round"}
-          </button>
-        )}
-      </div>
-
-      {matches.length === 0 ? (
-        <p>No matches yet...</p>
-      ) : (
-        <ul className="list-disc list-inside space-y-1">
-          {matches.map((m) => (
-            <li key={`${m.media_type}:${m.tmdb_id}`}>
-              {m.title} ({m.media_type})
-            </li>
-          ))}
-        </ul>
-      )}
+      </section>
     </div>
   );
 }
