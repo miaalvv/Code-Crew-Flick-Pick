@@ -16,7 +16,7 @@ type TMDBMovieResponse = {
 // const movieIds = [37799, 840464, 1084242, 83533]; 
 
 // add more movie ids to have more studios
-const movieIds = [533533, 9702, 238, 155, 680, 408, 756, 19995, 9799, 9615, 584, 64328, 83533];
+const movieIds = [83533];
 
 function tmdb (path: string) {
     const url = new URL (`https://api.themoviedb.org/3${path}`);

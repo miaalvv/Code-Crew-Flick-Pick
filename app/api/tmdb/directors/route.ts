@@ -19,6 +19,7 @@ type TMDBCrewResponse = {
 // add more movie ids to have more directors
 const movieIds = [83533];
 
+
 function tmdb (path: string) {
     const url = new URL (`https://api.themoviedb.org/3${path}`);
     url.searchParams.set ("language", "en-US")

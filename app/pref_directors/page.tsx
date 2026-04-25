@@ -248,17 +248,19 @@ export default function DirectorPreferencePage () {
                         Pick your favorite directors to filter movies from. 
                     </p>
 
-                    <button
-                        onClick={save}
-                        disabled={saving}
-                        className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-60 transition"
-                    >
-                        {saving ? 'Saving…' : 'Save directors'}
-                    </button>
-
                 </div>
 
             </section>
+
+            <div className="sticky bottom-0 bg-background/80 backdrop-blur-xs border-t border-white/20 p-3 flex items-center justify-end rounded-md">
+                <button
+                    onClick={save}
+                    disabled={saving}
+                    className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-60 transition"
+                >
+                    {saving ? 'Saving…' : 'Save Directors'}
+                </button>
+            </div>
         </div>
     )
 }

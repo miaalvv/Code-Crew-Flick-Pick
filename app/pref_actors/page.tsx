@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../_lib/supabaseClient';
+import { json } from "stream/consumers";
 
 type Actor = {
     id: number;
@@ -103,8 +104,12 @@ export default function ActorPreferencePage () {
         }
 
         const payload = Array.from (selected).map ((actor_id) => {
-            const name = actors.find ((a) => a.id === actor_id)?.name || '';
-            return { user_id: userId, actor_id, actor_name: name};
+            const found = actors.find ((a) => a.id === actor_id);
+            if (!found) {
+                console.warn (`Actor with id ${actor_id} not found in actors list`);
+                return null;
+            }
+            return { user_id: userId, actor_id, actor_name: found.name};
         });
 
         if (payload.length > 0) {
@@ -118,6 +123,7 @@ export default function ActorPreferencePage () {
                 return;
             }
         }
+
 
         setSaving (false);
         setSaved (true);
@@ -248,17 +254,19 @@ export default function ActorPreferencePage () {
                         Pick your favorite actors to filter movies. 
                     </p>
 
-                    <button
-                        onClick={save}
-                        disabled={saving}
-                        className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-60 transition"
-                    >
-                        {saving ? 'Saving…' : 'Save actors'}
-                    </button>
-
                 </div>
 
             </section>
+            
+            <div className="sticky bottom-0 bg-background/80 backdrop-blur-xs border-t border-white/20 p-3 flex items-center justify-end rounded-md">
+                <button
+                    onClick={save}
+                    disabled={saving}
+                    className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-60 transition"
+                >
+                    {saving ? 'Saving…' : 'Save Actors'}
+                </button>
+            </div>
         </div>
     )
 }
