@@ -127,7 +127,7 @@ export default function DecadePreferencePage () {
 
         {/* Redirect back to profile */}
 
-        window.location.href = "/profile";
+        window.location.href = "/watch-preferences";
     }
 
     if (loading) {

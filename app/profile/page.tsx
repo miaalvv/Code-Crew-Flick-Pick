@@ -4,39 +4,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../_lib/supabaseClient';
 
-type Provider = {
-  id: number;
-  name: string;
-  logo_path: string | null;
-};
-
-type Genre = {
-  genre_id: number;
-  genre_name: string;
-};
-
-type Duration = {
-  min_duration: number;
-  max_duration: number;
-};
-
-type Actor = {
-  actor_id: number;
-  actor_name: string;
-  actor_popularity: number;
-}
-
-type Director = {
-  director_id: number;
-  director_name: string;
-  director_popularity: number;
-}
-
-type Studio = {
-  studio_id: number;
-  studio_name: string;
-}
-
 export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [initialDisplayName, setInitialDisplayName] = useState<string | null>(null);
@@ -44,31 +11,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  {/* Watch Providers */}
-  const [services, setServices] = useState<Provider[] | null>(null);
-  const [loadingServices, setLoadingServices] = useState(true);
-
-  {/* Genres */}
-  const [userGenres, setUserGenres] = useState<Genre[] | null>(null);
-
-  {/* Duration */}
-  const [userDurations, setUserDurations] = useState<Duration | null>(null);
-
-  {/* Keywords */}
-  const [userKeywords, setUserKeywords] = useState<any[] | null>(null);
-
-  {/* Actors */}
-  const [userActors, setUserActors] = useState<Actor[] | null>(null);
-
-  {/* Directors */}
-  const [userDirectors, setUserDirectors] = useState<Director[] | null>(null);
-  
-  {/* Studios */}
-  const [userStudios, setUserStudios] = useState<Studio[] | null>(null);
-
-  {/* Decades */}
-  const [userDecades, setUserDecades] = useState<any[] | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -87,7 +34,7 @@ export default function ProfilePage() {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('display_name')
+          .select('display_name, avatar_url')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -105,266 +52,15 @@ export default function ProfilePage() {
             setDisplayName(prefix);
           }
         }
+        if (profile?.avatar_url) {
+          setAvatarUrl(profile.avatar_url);
+        }
       } catch (err) {
         console.error(err);
         setError('Failed to load profile.');
       } finally {
         setLoading(false);
       }
- 
-      {/* ---------- Load and Display TMDB Providers on cards (code from dashboard) ----------*/}
-
-      // 3. Loads TMDB providers
-      try {
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          window.location.href = '/login';
-          return;
-        }
-              const res = await fetch('/api/tmdb/providers?region=US');
-              const json = await res.json();
-      
-              if (!json.ok) {
-                setServices([]);
-                setLoadingServices(false);
-                return;
-              }
-      
-              const allProviders: Provider[] = json.providers;
-      
-              // 4) Load this user's saved services from Supabase
-              const { data: rows, error } = await supabase
-                .from('user_services')
-                .select('provider_id')
-                .eq('user_id', user.id);
-      
-              if (error || !rows) {
-                setServices([]);
-                setLoadingServices(false);
-                return;
-              }
-      
-              const ids = rows.map((r: { provider_id: number }) => r.provider_id);
-              const selectedProviders = allProviders.filter((p) => ids.includes(p.id));
-      
-              setServices(selectedProviders);
-              setLoadingServices(false);
-            } catch (err) {
-              console.error(err);
-              setServices([]);
-              setLoadingServices(false);
-            }
-
-
-            {/* ---------- Loads and displays the user's selected genres on card ---------- */}
-
-            try {
-              const {
-                data: { user },
-              } = await supabase.auth. getUser ();
-
-              if (!user) {
-              window.location.href = "/login";
-              return;
-              }
-
-              {/* Fetch user's saved genres */}
-
-              const { data: genreRows, error: genreError } = await supabase
-                .from ("user_genres")
-                .select ("genre_id, genre_name")
-                .eq ("user_id", user.id);
-
-              if (genreError || !genreRows) {
-                setUserGenres ([]);
-                return;
-              }
-
-              setUserGenres (genreRows);
-
-            } catch (err) {
-              console.error (err);
-              setUserGenres ([]);
-            }
-
-            {/* ---------- Loads and displays the user's selected duration ---------- */}
-            
-             try {
-              const {
-                data: { user },
-              } = await supabase.auth. getUser ();
-
-              if (!user) {
-              window.location.href = "/login";
-              return;
-              }
-
-              {/* Fetch user's saved duration */}
-
-              const { data: durationRows, error: durationError } = await supabase
-                .from ("user_durations")
-                .select ("min_duration, max_duration")
-                .eq ("user_id", user.id)
-                .maybeSingle ();
-
-              if (durationError || !durationRows) {
-                setUserDurations (null);
-                return;
-              }
-
-              setUserDurations (durationRows);
-
-            } catch (err) {
-              console.error (err);
-              setUserDurations (null);
-            }
-
-            {/* ---------- Loads and displays the user's selected decades and keywords ---------- */}
-
-            try {
-              const {
-                data: { user },
-              } = await supabase.auth. getUser ();
-
-              if (!user) {
-              window.location.href = "/login";
-              return;
-              }
-
-              {/* Fetch user's saved decades */}
-
-              const { data: decadeRows, error: decadeError } = await supabase
-                .from ("user_decades")
-                .select ("decade_label")
-                .eq ("user_id", user.id);
-
-              if (decadeError || !decadeRows) {
-                setUserDecades ([]);
-                return;
-              } 
-
-              setUserDecades (decadeRows);
-
-              {/* Fetch user's saved keywords */}
-
-              const { data: keywordRows, error: keywordError } = await supabase
-                .from ("user_keywords")
-                .select ("keyword_name")
-                .eq ("user_id", user.id);
-
-              if (keywordError || !keywordRows) {
-                setUserKeywords ([]);
-                return;
-              }
-
-              setUserKeywords (keywordRows);
-
-            } catch (e) {
-              console.error (e);
-              setUserDecades ([]);
-              setUserKeywords ([]);
-            } finally {
-              setLoading (false);
-            }
-
-            {/* ---------- Loads and displays the user's selected actors on card ---------- */}
-
-            try {
-              const {
-                data: { user },
-              } = await supabase.auth. getUser ();
-
-              if (!user) {
-              window.location.href = "/login";
-              return;
-              }
-
-              {/* Fetch user's saved actors */}
-
-              const { data: actorRows, error: actorError } = await supabase
-                .from ("user_actors")
-                .select ("actor_id, actor_name, actor_popularity")
-                .eq ("user_id", user.id);
-
-              if (actorError || !actorRows) {
-                setUserActors ([]);
-                return;
-              }
-
-              setUserActors (actorRows);
-
-            } catch (err) {
-              console.error (err);
-              setUserActors ([]);
-            }
-
-            {/* ---------- Loads and displays the user's selected directors on card ---------- */}
-
-            try {
-              const {
-                data: { user },
-              } = await supabase.auth. getUser ();
-
-              if (!user) {
-              window.location.href = "/login";
-              return;
-              }
-
-              {/* Fetch user's saved directors */}
-
-              const { data: directorRows, error: directorError } = await supabase
-                .from ("user_directors")
-                .select ("director_id, director_name, director_popularity")
-                .eq ("user_id", user.id);
-
-              if (directorError || !directorRows) {
-                setUserDirectors ([]);
-                return;
-              }
-
-              setUserDirectors (directorRows);
-
-            } catch (err) {
-              console.error (err);
-              setUserDirectors ([]);
-            }
-
-            {/* ---------- Loads and displays the user's selected studios on card ---------- */}
-
-            try {
-              const {
-                data: { user },
-              } = await supabase.auth. getUser ();
-
-              if (!user) {
-              window.location.href = "/login";
-              return;
-              }
-
-              {/* Fetch user's saved studios */}
-
-              const { data: studioRows, error: studioError } = await supabase
-                .from ("user_studios")
-                .select ("studio_id, studio_name")
-                .eq ("user_id", user.id);
-
-              if (studioError || !studioRows) {
-                setUserStudios ([]);
-                return;
-              }
-
-              setUserStudios (studioRows);
-
-            } catch (err) {
-              console.error (err);
-              setUserStudios ([]);
-            }
-            
-
     };
 
     load();
@@ -413,7 +109,55 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  }; 
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      setAvatarError('Please choose an image file first.');
+      return;
+    }
+    setAvatarError(null);
+    setAvatarMessage(null);
+    setAvatarUploading(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const fileExt = avatarFile.name.split('.').pop();
+      const path = `${user.id}-${Date.now()}.${fileExt ?? 'jpg'}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = publicUrlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      setAvatarMessage('Avatar updated!');
+    } catch (err: any) {
+      console.error(err);
+      setAvatarError(err.message ?? 'Failed to upload avatar.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -423,281 +167,120 @@ export default function ProfilePage() {
     );
   }
 
-  {/* Cards and their information - 
-    id: card number, title: card title displayed, card_name: short card name, ref: link to specific pref page*/}
-
-  const cards = [
-    {id: 1, title: "Watch Providers", card_name: "providers", ref:"/preferences"},
-    {id: 2, title: "Genres", card_name: "genres", ref:"/pref_genres"},
-    {id: 3, title: "Actors", card_name: "actors", ref:"/pref_actors"},
-    {id: 4, title: "Directors", card_name: "directors", ref:"/pref_directors"},
-    {id: 5, title: "Keywords", card_name: "keywords", ref:"/pref_keywords"},
-    {id: 6, title: "Duration", card_name: "durations", ref:"/pref_durations"},
-    {id: 7, title: "Studios", card_name: "studios", ref:"/pref_studios"},
-    {id: 8, title: "Decades", card_name: "decades", ref:"/pref_decades"},
-  ];
-
-
   return (
     <div className="mt-4">
-      <section className="rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-6 max-w-xl">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200">
-            <span className="h-2 w-2 rounded-full bg-sky-400" />
-            Profile
-          </div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
-            Choose how your name appears
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-            We&apos;ll use this display name on your dashboard and in parties. You&apos;ll
-            still log in with your email magic link.
-          </p>
-        </div>
-
-        <form onSubmit={handleSave} className="space-y-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
+        <section className="flex-1 rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-6 w-full max-w-xl">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-slate-200">
-              Display name
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-500/40"
-              placeholder="e.g. Mia, MovieMia, FlickQueen"
-            />
-            <p className="text-[11px] text-slate-500">
-              This doesn&apos;t affect how you sign in. It&apos;s just how others see you.
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200">
+              <span className="h-2 w-2 rounded-full bg-sky-400" />
+              Profile
+            </div>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
+              Choose how your name appears
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+              We&apos;ll use this display name on your dashboard and in parties. You&apos;ll
+              still log in with your email.
             </p>
           </div>
 
-          {error && (
-            <p className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/40 rounded-xl px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          {message && (
-            <p className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/40 rounded-xl px-3 py-2">
-              {message}
-            </p>
-          )}
-
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
-            >
-              {saving
-                ? 'Saving…'
-                : initialDisplayName
-                ? 'Update display name'
-                : 'Save display name'}
-            </button>
-          </div>
-        </form>
-      </section>
-      
-
-      {/* User Preferences */}
-
-      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-200">
-            <span className="h-2 w-2 rounded-full bg-sky-400" />
-            Preferences
-      </div>
-      
-      {/* Grid with 2 columns for cards */}
-      <div className='mt-4 grid grid-cols-2 gap-10 min-h-[750px]'>
-        {cards.map ((card) => (
-
-          <section key={card.id} className='rounded-3xl bg-slate-900/80 border border-slate-700/70 p-4 shadow-md'>
-
-            {/* flex allows card title and update button to be on same line */}
-            <div className='flex items-start'>
-
-              <h2 className='text-xl font-semibold text-slate-100 mb-2'>{card.title}</h2>
-
-              {/* card.ref pulls from const cards to allow each card to link to their own page */}
-              <a className='ml-auto rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition'
-                href={card.ref}>
-                Update
-              </a>
-
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-200">Display name</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-500/40"
+                placeholder="e.g. Mia, MovieMia, FlickQueen"
+              />
+              <p className="text-[11px] text-slate-500">
+                This doesn&apos;t affect how you sign in. It&apos;s just how others see you.
+              </p>
             </div>
 
-            {/* ---------- Displays providers that the user has selected on card ---------- */}
-            {card.card_name == "providers" && (
-              <>
-                {loadingServices ? (
-                  <p className='text slate-400 text-sm'>Loading providers...</p>
-                ) : services && services.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {services.map ((provider) => (
-                      <div key = {provider.id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        {provider.logo_path && (
-                          <img src = {`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
-                          alt = {provider.name}
-                          className='h-5'/>
-                        )}
-
-                        {/* test out taking out provider name, leaving only providers image to save space */}
-                        <span className='text-xs text-slate-300'> {provider.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Watch Providers Selected</p>
-                )}
-              </>
-            )}
-            
-            {/* couldnt figure out how to do above part dynamically for each card, gonna implement each one individually for now */}
-
-            {/* ---------- Displays genres, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "genres" && (
-              <>
-                {!userGenres ? (
-                  <p className='text slate-400 text-sm'>Loading genres...</p>
-                ) : userGenres.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userGenres.map ((genre) => (
-                      <div key = {genre.genre_id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {genre.genre_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Genres Selected</p>
-                )}
-              </>
+            {error && (
+              <p className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/40 rounded-xl px-3 py-2">
+                {error}
+              </p>
             )}
 
-             {/* ---------- Displays the duration range, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "durations" && (
-              <>
-                {!userDurations ? (
-                  <p className='text slate-400 text-sm'>Loading duration...</p>
-                ) : (
-                  <p className='flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full text-xs text-slate-300 inline-block border border-slate-700'>
-                      {userDurations?.min_duration} - {userDurations?.max_duration} minutes
-                  </p>
-                )}
-              </>
+            {message && (
+              <p className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/40 rounded-xl px-3 py-2">
+                {message}
+              </p>
             )}
 
-            {/* ---------- Displays the decades, that the user has selected, on the card ---------- */}
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                {saving
+                  ? 'Saving…'
+                  : initialDisplayName
+                  ? 'Update display name'
+                  : 'Save display name'}
+              </button>
+            </div>
+          </form>
+        </section>
 
-            {card.card_name == "decades" && (
-              <>
-                {!userDecades ? (
-                  <p className='text slate-400 text-sm'>Loading decades...</p>
-                ) : userDecades.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userDecades.map ((decade) => (
-                      <div key = {decade.decade_label} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {decade.decade_label}</span>
-                      </div>
-                    ))}
-                  </div>
+        <section className="flex-1 rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-4 w-full max-w-xl">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-3 py-1 text-[11px] font-medium text-pink-200">
+              <span className="h-2 w-2 rounded-full bg-pink-400" />
+              Avatar
+            </div>
+            <h2 className="text-lg font-semibold text-slate-100">Upload your avatar</h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+              This image will show in the app header and parties. Square images look best.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+            <div className="flex justify-center sm:justify-start">
+              <div className="w-full max-w-[220px] aspect-square rounded-full border border-slate-700 bg-slate-800 overflow-hidden flex items-center justify-center text-slate-300 text-2xl">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                 ) : (
-                  <p className='text-slate-400 text-sm'>No Decades Selected</p>
+                  (displayName || '🙂')[0]
                 )}
-              </>
-            )}
+              </div>
+            </div>
 
-            {/* ---------- Displays the keywords, that the user has selected, on the card ---------- */}
+            <div className="flex-1 space-y-2">
+              <p className="text-sm text-slate-300">
+                Pick an image, then save it to update your avatar across the app.
+              </p>
+              {avatarFile && <p className="text-xs text-slate-400 truncate">{avatarFile.name}</p>}
+              {avatarMessage && <span className="block text-xs text-emerald-300">{avatarMessage}</span>}
+              {avatarError && <span className="block text-xs text-rose-300">{avatarError}</span>}
+            </div>
+          </div>
 
-            {card.card_name == "keywords" && (
-              <>
-                {!userKeywords ? (
-                  <p className='text slate-400 text-sm'>Loading keywords...</p>
-                ) : userKeywords.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userKeywords.map ((keyword) => (
-                      <div key = {keyword.keyword_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {keyword.keyword_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Keywords Selected</p>
-                )}
-              </>
-            )}
-
-            {/* ---------- Displays the actors, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "actors" && (
-              <>
-                {!userActors ? (
-                  <p className='text slate-400 text-sm'>Loading actors...</p>
-                ) : userActors.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userActors.map ((actor) => (
-                      <div key = {actor.actor_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {actor.actor_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Actors Selected</p>
-                )}
-              </>
-            )}
-
-             {/* ---------- Displays the directors, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "directors" && (
-              <>
-                {!userDirectors ? (
-                  <p className='text slate-400 text-sm'>Loading directors...</p>
-                ) : userDirectors.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userDirectors.map ((director) => (
-                      <div key = {director.director_name} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {director.director_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Directors Selected</p>
-                )}
-              </>
-            )}
-
-             {/* ---------- Displays studios, that the user has selected, on the card ---------- */}
-
-            {card.card_name == "studios" && (
-              <>
-                {!userStudios ? (
-                  <p className='text slate-400 text-sm'>Loading studios...</p>
-                ) : userStudios.length > 0 ? (
-                  <div className='flex flex-wrap gap-2 mt-1'>
-                    {userStudios.map ((studio) => (
-                      <div key = {studio.studio_id} className='flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700'>
-                        <span className='text-xs text-slate-300'> {studio.studio_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='text-slate-400 text-sm'>No Studios Selected</p>
-                )}
-              </>
-            )}
-
-
-
-          </section>
-        ))}
-
+          <div className="border-t border-white/10 pt-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-xs text-slate-200 file:mr-3 file:rounded-full file:border-0 file:bg-pink-500 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-white file:hover:bg-pink-400 sm:max-w-sm"
+              />
+              <button
+                type="button"
+                onClick={handleAvatarUpload}
+                disabled={avatarUploading}
+                className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-60 disabled:cursor-not-allowed transition sm:self-end"
+              >
+                {avatarUploading ? 'Uploading…' : 'Save avatar'}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
-
     </div>
-
   );
 }
-

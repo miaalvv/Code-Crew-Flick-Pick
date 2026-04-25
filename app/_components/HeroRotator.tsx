@@ -12,6 +12,7 @@ type TMDBItem = {
   backdrop_path?: string | null;
   poster_path?: string | null;
   trailerKey?: string | null;
+  overview?: string | null;
 };
 
 type PopularResp = {
@@ -31,6 +32,7 @@ export default function HeroRotator() {
   const [items, setItems] = useState<TMDBItem[]>([]);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const timerRef = useRef<number | null>(null);
   const { user } = useUser();
 
@@ -59,11 +61,16 @@ export default function HeroRotator() {
   const current = items[idx] || null;
   const bg = current ? pickImg(current) : null;
   const title = current?.title ?? current?.name ?? null;
+  const overview = current?.overview?.trim();
 
   const pair = useMemo(() => {
     const prevIdx = (idx - 1 + items.length) % (items.length || 1);
     return [items[prevIdx], items[idx]].filter(Boolean) as TMDBItem[];
   }, [idx, items]);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [idx]);
 
   return (
     <section
@@ -98,61 +105,90 @@ export default function HeroRotator() {
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/60" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+      <div className="pointer-events-auto absolute top-4 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5">
+        {items.map((_, i) => (
+          <button
+            key={i}
+            aria-label={`Go to slide ${i + 1}`}
+            onClick={() => setIdx(i)}
+            className={`h-2.5 w-2.5 rounded-full transition ${
+              i === idx ? 'bg-white' : 'bg-white/50 hover:bg-white/80'
+            }`}
+          />
+        ))}
+      </div>
 
-      <div className="relative z-10 flex h-full flex-col justify-end p-6 sm:p-10 gap-4">
+      <div className="relative z-10 flex h-full flex-col justify-end p-6 sm:p-10 gap-3">
         <div className="max-w-3xl">
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight drop-shadow-md">
             {title ?? 'Discover something new'}
           </h1>
-          {title && (
-            <p className="mt-2 text-lg sm:text-xl opacity-90">
-              Now featuring: <span className="font-semibold">{title}</span>
-            </p>
-          )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Play trailer button, falls back to a YouTube search if no trailerKey */}
-          {current && (
-            <a
-              href={
-                current.trailerKey
-                  ? `https://www.youtube.com/watch?v=${current.trailerKey}`
-                  : title
-                  ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`
-                  : '#'
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-red-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-60"
-              aria-disabled={!title && !current.trailerKey}
+        {overview && (
+          <div className="flex w-full items-start max-w-6xl justify-between gap-3 pr-1 sm:pr-4">
+            <div
+              className="flex-1 mt-1 text-sm sm:text-base text-slate-100/90 max-w-2xl"
+              onMouseEnter={() => setExpanded(true)}
+              onMouseLeave={() => setExpanded(false)}
+              onFocus={() => setExpanded(true)}
+              onBlur={() => setExpanded(false)}
             >
-              ▶ View trailer
-            </a>
-          )}
+              <p className={`${expanded ? '' : 'line-clamp-2'} leading-relaxed transition-all`}>
+                {overview}
+              </p>
+            </div>
 
-          {!user && (
-            <a
-              href="/login"
-              className="inline-block bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition"
-            >
-              Sign in
-            </a>
-          )}
-
-          <div className="ml-2 flex items-center gap-1.5">
-            {items.map((_, i) => (
-              <button
-                key={i}
-                aria-label={`Go to slide ${i + 1}`}
-                onClick={() => setIdx(i)}
-                className={`h-2.5 w-2.5 rounded-full transition ${
-                  i === idx ? 'bg-white' : 'bg-white/40 hover:bg-white/70'
-                }`}
-              />
-            ))}
+            <div className="flex items-end gap-2 ml-auto">
+              {!user ? (
+                <>
+                  <a
+                    href="/login"
+                    className="inline-block bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm sm:text-base font-semibold hover:bg-blue-700 transition"
+                  >
+                    Sign in
+                  </a>
+                  {/* Play trailer button, falls back to a YouTube search if no trailerKey */}
+                  {current && (
+                    <a
+                      href={
+                        current.trailerKey
+                          ? `https://www.youtube.com/watch?v=${current.trailerKey}`
+                          : title
+                          ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`
+                          : '#'
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm sm:text-base font-semibold hover:bg-red-700 transition disabled:opacity-60"
+                      aria-disabled={!title && !current.trailerKey}
+                    >
+                      ▶ View trailer
+                    </a>
+                  )}
+                </>
+              ) : (
+                current && (
+                  <a
+                    href={
+                      current.trailerKey
+                        ? `https://www.youtube.com/watch?v=${current.trailerKey}`
+                        : title
+                        ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`
+                        : '#'
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm sm:text-base font-semibold hover:bg-red-700 transition disabled:opacity-60"
+                      aria-disabled={!title && !current.trailerKey}
+                    >
+                      ▶ View trailer
+                    </a>
+                )
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="absolute right-3 top-3 z-10">
