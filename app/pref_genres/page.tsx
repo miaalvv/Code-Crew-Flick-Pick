@@ -125,7 +125,7 @@ export default function GenrePreferencePage () {
 
         {/* redirects back to the profile page */}
 
-        window.location.href = "/watch-preferences";
+        window.location.href = "/profile";
     };
 
     if (loading) {

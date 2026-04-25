@@ -93,9 +93,5 @@ export async function POST(req: Request) {
     next: next ? `${next.media_type}:${next.tmdb_id}` : null,
   });
 
-  return NextResponse.json({
-    next,
-    seen_count: seenRows?.length ?? 0,
-    total_count: candidates.length,
-  });
+  return NextResponse.json({ next });
 }

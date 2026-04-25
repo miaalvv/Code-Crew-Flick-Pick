@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../_lib/supabaseClient';
-import { useRouter } from 'next/navigation';
 
 type Provider = { id: number; name: string; logo_path: string | null };
 
 export default function PreferencesPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -163,23 +161,11 @@ export default function PreferencesPage() {
               actually watch. You can change this anytime.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                document.getElementById('save-services')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              }
-              className="hidden sm:inline-flex items-center gap-2 rounded-full border border-pink-500/50 bg-pink-500/15 px-3.5 py-1.5 text-[11px] font-semibold text-pink-100 hover:border-pink-400 hover:bg-pink-500/25 transition"
-            >
-              <span className="text-sm font-bold leading-none">↓</span>
-              Go to save
-            </button>
-            {saved && (
-              <span className="rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
-                Saved ✓
-              </span>
-            )}
-          </div>
+          {saved && (
+            <span className="rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
+              Saved ✓
+            </span>
+          )}
         </div>
 
         {/* Error message */}
@@ -235,10 +221,7 @@ export default function PreferencesPage() {
         </div>
 
         {/* Save area */}
-        <div
-          id="save-services"
-          className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400"
-        >
+        <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
           <p className="hidden sm:block">
             Pro tip: pick the services your whole friend group has in common for the best matches.
           </p>

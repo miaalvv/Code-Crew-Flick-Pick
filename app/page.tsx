@@ -65,13 +65,51 @@ export default function HomePage() {
           <ul className="flex flex-wrap gap-4 text-xs text-slate-400">
             <li className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Easy Set Up & Instant Play
+              No passwords – email magic links only
             </li>
             <li className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
               TMDB-powered movie data
             </li>
           </ul>
+        </section>
+
+        <section className="hidden md:block">
+          <div className="relative rounded-3xl border border-slate-700/70 bg-slate-900/70 p-5 shadow-2xl shadow-black/40 backdrop-blur">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+              Swipe preview
+            </p>
+
+            <div className="mt-4 flex gap-4">
+              <div className="relative h-40 w-28 overflow-hidden rounded-2xl bg-slate-800/80">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-500">
+                  Poster
+                </div>
+              </div>
+
+              <div className="flex flex-1 flex-col justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    {sampleTitle ?? 'Sample TMDB movie'}
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {sample?.ok
+                      ? 'TMDB API is connected. This is a real title from the popular list.'
+                      : 'We&apos;ll show you real movie data from TMDB as soon as the API is ready.'}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex gap-3">
+                  <button className="flex-1 rounded-full bg-emerald-500/90 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-400 transition">
+                    Swipe right
+                  </button>
+                  <button className="flex-1 rounded-full bg-rose-500/90 px-3 py-2 text-xs font-semibold text-rose-50 hover:bg-rose-400 transition">
+                    Swipe left
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 

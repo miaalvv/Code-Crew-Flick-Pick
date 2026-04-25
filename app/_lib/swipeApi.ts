@@ -34,11 +34,7 @@ export async function getNextCard(party_id: string) {
     throw err;
   }
 
-  return data as {
-    next: Candidate | null;
-    seen_count: number;
-    total_count: number;
-  };
+  return data as { next: Candidate | null };
 }
 
 export async function sendSwipe(input: {
