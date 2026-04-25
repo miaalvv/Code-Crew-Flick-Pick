@@ -211,7 +211,7 @@ export default function DecadePreferencePage () {
                         disabled={saving}
                         className="rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-60 transition"
                     >
-                        {saving ? 'Saving…' : 'Save Decades'}
+                        {saving ? 'Saving…' : 'Save decades'}
                     </button>
 
                 </div>

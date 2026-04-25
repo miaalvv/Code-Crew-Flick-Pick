@@ -158,14 +158,16 @@ async function getMergedPreferences (
 }
 
 // Bug fixes and features that need to be implemented:
-// fix random movies being fetched to popular movies being fetched instead, when no preferences are selected
+// 1.) handle cases where user preferences are empty
+//    - right now if a user is missing even one category of preference, no movies are fetched at all
 //
-// 1.) fix users in party getting different movie pools and candidates
+// 2.) fix users in party getting different movie pools and candidates
 //    - right now, two users get similar movies, but not the exact same pool, and some movies are the same but in a different order
-//   - kinda fixed, every user is getting the same movies now, but the order is still different
 //
-// 2.) add more movies to extract details from to increase the number of preferences
-//     - I added some more movies, but i stil have more listed that i could add
+// 3.) add more movies to extract details from to increase the number of preferences
+//
+// 4.) move the save button for each preference to a better position, rather than at the bottom of each page
+//    - maybe add one at the top and bottom, or add it to the header, or add a footer thats always visible
  
 async function fetchMovieDetails (movieId: number, apiKey: string) {
   const headers = {
@@ -244,23 +246,6 @@ async function fetchRandomMovies(count: number, preferences: any) {
 
   const movieDetails = await Promise.all (detailPromises);
 
-  const hasGenres = preferences.genres.size > 0;
-  const hasActors = preferences.actors.size > 0;
-  const hasDirectors = preferences.directors.size > 0;
-  const hasStudios = preferences.studios.size > 0;
-  const hasProviders = preferences.providers.size > 0;
-  const hasKeywords = preferences.keywords.size > 0;
-  const hasDecades = preferences.decades.length > 0;
-
-  const totalPreferenceTypes = 
-    (hasGenres ? 1 : 0) +
-    (hasActors ? 1 : 0) +
-    (hasDirectors ? 1 : 0) +
-    (hasStudios ? 1 : 0) +
-    (hasProviders ? 1 : 0) +
-    (hasKeywords ? 1 : 0) +
-    (hasDecades ? 1 : 0);
-
   for (let i = 0; i < movies.length; i++) {
 
     const movie = movies [i];
@@ -268,69 +253,54 @@ async function fetchRandomMovies(count: number, preferences: any) {
     let score = 0;
 
     // Genre score calculation for movie
-    if (hasGenres) {
-      for (const g of movie.genre_ids ?? []) {
+    for (const g of movie.genre_ids ?? []) {
 
-        const weight = preferences.genres.get (g) ?? 0;
-        if (weight > 0) score += weight * weight * 2;
-      }
+      const weight = preferences.genres.get (g) ?? 0;
+      if (weight > 0) score += weight * weight * 2;
     }
 
     // Decades score calculation for movie
-    if (hasDecades) {
-      if (preferences.decades?.length && movie.release_date) {
-        const year = parseInt (movie.release_date.slice (0, 4));
-        if (preferences.decades.some ((de: any) => year >= de.startYear && year <= de.endYear)) score += 2;
-      }
+    if (preferences.decades?.length && movie.release_date) {
+      const year = parseInt (movie.release_date.slice (0, 4));
+      if (preferences.decades.some ((de: any) => year >= de.startYear && year <= de.endYear)) score += 2;
     }
 
     // Providers score calculation for movie
-    if (hasProviders) {
-      for (const p of details.providers) {
-        const weight = preferences.providers.get (p) ?? 0;
-        if (weight > 0) score += weight * weight * 2;
-      }
+    for (const p of details.providers) {
+      const weight = preferences.providers.get (p) ?? 0;
+      if (weight > 0) score += weight * weight * 2;
     }
 
     let keywordMatches = 0;
-
     // Keywords score calculation for movie
-    if (hasKeywords) {
-      for (const k of details.keywords) {
-        const weight = preferences.keywords.get (k) ?? 0;
-        if (weight > 0) {
-          keywordMatches++;
-          score +=  weight * weight * 10;
-        }
+    for (const k of details.keywords) {
+      const weight = preferences.keywords.get (k) ?? 0;
+      if (weight > 0) {
+        keywordMatches++;
+        score +=  weight * weight * 10;
       }
     }
 
     console.log ("Keyword Matches:", keywordMatches)
 
     // Actors score calculation for movie 
-    if (hasActors) {
-      for (const a of details.actors) {
-        const weight = preferences.actors.get (a) ?? 0;
-        if (weight > 0) score +=  weight * weight * 3;
-      }
+    for (const a of details.actors) {
+      const weight = preferences.actors.get (a) ?? 0;
+      if (weight > 0) score +=  weight * weight * 3;
     }
   
 
     // Directors score calculation for movie 
-    if (hasDirectors) {
-      for (const d of details.directors) {
-        const weight = preferences.directors.get (d) ?? 0;
-        if (weight > 0) score +=  weight * weight * 3;
-      }
+    for (const d of details.directors) {
+      const weight = preferences.directors.get (d) ?? 0;
+      if (weight > 0) score +=  weight * weight * 3;
     }
 
 
     // Studios score calculation for movie 
-    if (hasStudios) {
-      for (const s of details.studios) {
-        const weight = preferences.studios.get (s) ?? 0;
-        if (weight > 0) score +=  weight * weight * 2;
-      }
+    for (const s of details.studios) {
+      const weight = preferences.studios.get (s) ?? 0;
+      if (weight > 0) score +=  weight * weight * 2;
     }
 
 
@@ -345,17 +315,14 @@ async function fetchRandomMovies(count: number, preferences: any) {
     if (score >= majorityThreshold * 2) score += 20;
 
     // penalizes movies that dont have any matches to preferences
-    if (score === 0 && totalPreferenceTypes > 0) score = -10;
+    if (score === 0) score = -100;
 
     movie.score = score;
     console.log ("Movie", i, ": " , movie.score)
 
   }
 
-  const sortedMovies = movies.sort ((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.id - b.id;
-  });
+  const sortedMovies = movies.sort ((a, b) => b.score - a.score);
 
   // map to our candidate shape and sorted
   return sortedMovies.slice(0, count).map((m) => ({
