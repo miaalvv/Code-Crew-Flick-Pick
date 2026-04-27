@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { Key, useEffect, useState } from "react";
 import { supabase } from '../_lib/supabaseClient';
 
 type Keyword = {
@@ -17,6 +17,8 @@ export default function KeywordPreferencePage () {
     const [ error, setError] = useState('');
     const [ saving, setSaving] = useState(false);
     const [ saved, setSaved] = useState(false);
+    const [ searchTerm, setSearchTerm] = useState('');
+    const [ sortDirection, setSortDirection] = useState <"asc" | "desc"> ("asc");
 
     useEffect (() => {
         (async () => {
@@ -37,36 +39,22 @@ export default function KeywordPreferencePage () {
             setUserId (user.id);
 
             
-            {/* fetches keywords from movieid, with more movie ids to get more keywords */}
+            {/* fetches keywords from database*/}
 
-            const movieIds = [533533, 9702, 238, 155, 680, 408, 756, 19995, 9799, 9615, 584, 64328]; 
+            const res = await fetch ("/api/tmdb/keywords");
+            const json = await res.json ();
 
-            const allKeywords: Keyword [] = [];
-
-            for (const movieId of movieIds) {
-                const res = await fetch (`/api/tmdb/keywords?movieId=${movieId}`)
-                const json = await res.json ();
-            
-
-                if (!json.ok) {
-                    setError ("Failed to load keywords")
-                    setLoading (false);
-                    return;
-                }
-
-                allKeywords.push (...json.keywords);
+            if (!json.ok) {
+                setError ("Failed to load keywords")
+                setLoading (false);
+                return;
             }
 
-            {/* Removes duplicate keywords */}
-
-            const uniqueKeywords = Array.from (new Set (allKeywords.map (k => k.id)))
-                .map (id => allKeywords.find (k => k.id === id)!);
-           
-            {/* Sets keywords and sorts them alphabetically */}
-
-            setKeywords (uniqueKeywords.sort ((a: Keyword, b: Keyword) =>
-                a.name.localeCompare (b.name)
-            ));
+            setKeywords (
+                (json.keywords as Keyword []).sort ((a, b) =>
+                    a.name.localeCompare (b.name)
+                )
+            );
 
             {/* Loads user's selected keywords */}
 
@@ -133,8 +121,17 @@ export default function KeywordPreferencePage () {
         setSaved (true);
 
         {/* Redirects back to profile */}
-        window.location.href = "/profile"
+        window.location.href = "/watch-preferences"
     };
+
+    const filteredKeywords = keywords.filter ((keyword) => 
+        keyword.name.toLowerCase ().includes (searchTerm.toLowerCase ())
+        );
+
+    const sortedKeywords = [...filteredKeywords].sort ((a, b) => {
+        const result = a.name.localeCompare (b.name);
+        return sortDirection === "asc" ? result : -result;
+    });
 
     if (loading) {
         return (
@@ -167,11 +164,44 @@ export default function KeywordPreferencePage () {
 
                     </div>
 
-                    {saved && (
-                        <span className="rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
-                            Saved
-                        </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => document.getElementById('save-keywords')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            className="hidden sm:inline-flex items-center gap-2 rounded-full border border-pink-500/50 bg-pink-500/15 px-3.5 py-1.5 text-[11px] font-semibold text-pink-100 hover:border-pink-400 hover:bg-pink-500/25 transition"
+                        >
+                            <span className="text-sm font-bold leading-none">↓</span>
+                            Go to save
+                        </button>
+                        {saved && (
+                            <span className="rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
+                                Saved
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                 {/* Search Bar */}
+
+                <div className="mb-4 flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                    <input 
+                        type="text"
+                        placeholder="Search for keywords"
+                        className="flex-1 min-w-0 rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm (e.target.value)}
+                    />
+
+                    <button
+                        onClick={() => setSortDirection (sortDirection === "asc" ? "desc" : "asc")}
+                        title={sortDirection === "asc" ? "Sort Descending" : "Sort Ascending"}
+                        className="whitespace-nowrap rounded-full bg-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 transition"
+                        >
+                            <span className="text-sm">
+                                {sortDirection === "asc" ? "\u21E9" : "\u21E7"}
+                            </span>
+                        
+                        </button>
                 </div>
 
                 {/* Error message in case something went wrong */}
@@ -185,7 +215,7 @@ export default function KeywordPreferencePage () {
                 {/* Keyword selection grid */}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {keywords.map ((k) => {
+                    {sortedKeywords.map ((k) => {
                         const on = selected.has (k.id);
                         return (
                             <button
@@ -206,7 +236,7 @@ export default function KeywordPreferencePage () {
 
                 {/* Section for the save button */}
                 
-                <div className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
+                <div id="save-keywords" className="flex items-center justify-between gap-3 pt-2 text-xs text-slate-400">
 
                     <p className="hidden sm:block">
                         Pick your favorite keywords to filter movies. 

@@ -32,13 +32,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "party_id required" }, { status: 400 });
   }
 
-  // get current round_id (NEW)
   const { data: currentRound, error: roundErr } = await supabase
     .from("rounds")
     .select("round_id, round_num")
     .eq("party_id", party_id)
     .eq("is_active", true)
-    .single();
+    .order("round_num", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
 
   if (!currentRound || roundErr) {
     return NextResponse.json({ error: "no active round for this party" }, { status: 400 });
@@ -91,5 +93,9 @@ export async function POST(req: Request) {
     next: next ? `${next.media_type}:${next.tmdb_id}` : null,
   });
 
-  return NextResponse.json({ next });
+  return NextResponse.json({
+    next,
+    seen_count: seenRows?.length ?? 0,
+    total_count: candidates.length,
+  });
 }

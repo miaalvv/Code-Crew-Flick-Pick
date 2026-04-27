@@ -44,19 +44,42 @@ export async function POST(req: Request) {
     );
   }
 
-  // gets current round num (NEW)
-  const { data: currentRound, error: roundErr } = await supabase
-    .from("rounds")
-    .select("round_id, round_num")
-    .eq("party_id", party_id)
-    .eq("is_active", true)
-    .single();
+  let round_id: string | null = (body?.round_id ?? null);
 
-  if (!currentRound || roundErr) {
-    return NextResponse.json({ error: "no active round for this party" }, { status: 400 });
+  if (round_id) {
+    // verify the round belongs to this party (works even if inactive)
+    const { data: r, error: rErr } = await supabase
+      .from("rounds")
+      .select("round_id")
+      .eq("party_id", party_id)
+      .eq("round_id", round_id)
+      .maybeSingle();
+
+    if (rErr || !r) {
+      round_id = null; // fall back to active lookup below
+    }
   }
 
-  const round_id = currentRound.round_id;
+  if (!round_id) {
+    const { data: currentRound, error: roundErr } = await supabase
+      .from("rounds")
+      .select("round_id, round_num")
+      .eq("party_id", party_id)
+      .eq("is_active", true)
+      .order("round_num", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!currentRound || roundErr) {
+      // round may have just ended; treat as "too late" not a hard crash
+      return NextResponse.json(
+        { error: "round has ended" },
+        { status: 409 } // conflict / stale client
+      );
+    }
+
+    round_id = currentRound.round_id;
+  }
 
   // upsert swipe (so re-swiping the same card just updates the decision)
   const { error: insErr } = await supabase
