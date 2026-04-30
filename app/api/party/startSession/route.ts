@@ -158,16 +158,7 @@ async function getMergedPreferences (
 }
 
 // Bug fixes and features that need to be implemented:
-// 1.) handle cases where user preferences are empty
-//    - right now if a user is missing even one category of preference, no movies are fetched at all
-//
-// 2.) fix users in party getting different movie pools and candidates
-//    - right now, two users get similar movies, but not the exact same pool, and some movies are the same but in a different order
-//
-// 3.) add more movies to extract details from to increase the number of preferences
-//
-// 4.) move the save button for each preference to a better position, rather than at the bottom of each page
-//    - maybe add one at the top and bottom, or add it to the header, or add a footer thats always visible
+// 1.) invite code not working 
  
 async function fetchMovieDetails (movieId: number, apiKey: string) {
   const headers = {
@@ -212,32 +203,82 @@ async function fetchRandomMovies(count: number, preferences: any) {
 
   console.log ("Top Genres: ", topGenres)
 
-  for (let attempt = 0; attempt < 5 && moviesMap.size < count * 10; attempt++) {
-    
-    // pick a random page of popular movies (1–50 is safe enough)
-    const page = Math.floor(Math.random() * 50) + 1;
+  const hasGenres = preferences.genres.size > 0;
+  const hasActors = preferences.actors.size > 0;
+  const hasDirectors = preferences.directors.size > 0;
+  const hasStudios = preferences.studios.size > 0;
+  const hasProviders = preferences.providers.size > 0;
+  const hasKeywords = preferences.keywords.size > 0;
+  const hasDecades = preferences.decades.length > 0;
 
-    let url = `https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=${page}&sort_by=vote_average.desc&vote_count.gte=500`
+  const totalPreferenceTypes = 
+    (hasGenres ? 1 : 0) +
+    (hasActors ? 1 : 0) +
+    (hasDirectors ? 1 : 0) +
+    (hasStudios ? 1 : 0) +
+    (hasProviders ? 1 : 0) +
+    (hasKeywords ? 1 : 0) +
+    (hasDecades ? 1 : 0);
 
-    if (topGenres) {
-      url += `&with_genres=${topGenres}`;
+  const noPreferences = totalPreferenceTypes === 0;
+
+  if (noPreferences) {
+    // fetch popular and trending movies instead of random movies when no preferences are chosen
+
+    const pages = new Set<number> ();
+
+    while (pages.size < 5) {
+      pages.add (Math.floor (Math.random() * 20) + 1);
     }
 
-    const res = await fetch( url,
-      {
+    for (const page of pages) {
+      const url = `https://api.themoviedb.org/3/trending/movie/week?include_adult=false&include_video=false&language=en-US&page=${page}`;
+
+      const res = await fetch( url, {
         headers: {
           accept: "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
-      }
-    );
+      });
 
-    if (!res.ok) continue;
-    const data = await res.json ();
-    
-    for (const m of data.results ?? []) {
-      if (!moviesMap.has (m.id)) moviesMap.set (m.id, {...m, score: 0});
-    } 
+      if (!res.ok) continue;
+
+      const data = await res.json ();
+
+      for (const m of data.results ?? []) {
+        if (!moviesMap.has (m.id)) moviesMap.set (m.id, {...m, score: 0});
+      }
+    }
+
+  } else {
+
+    for (let attempt = 0; attempt < 5 && moviesMap.size < count * 10; attempt++) {
+      
+      // pick a random page of popular movies (1–50 is safe enough)
+      const page = Math.floor(Math.random() * 50) + 1;
+
+      let url = `https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=${page}&sort_by=vote_average.desc&vote_count.gte=500`
+
+      if (topGenres) {
+        url += `&with_genres=${topGenres}`;
+      }
+
+      const res = await fetch( url,
+        {
+          headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      if (!res.ok) continue;
+      const data = await res.json ();
+      
+      for (const m of data.results ?? []) {
+        if (!moviesMap.has (m.id)) moviesMap.set (m.id, {...m, score: 0});
+      } 
+    }
   }
 
   const movies = Array.from (moviesMap.values ());
@@ -246,6 +287,7 @@ async function fetchRandomMovies(count: number, preferences: any) {
 
   const movieDetails = await Promise.all (detailPromises);
 
+
   for (let i = 0; i < movies.length; i++) {
 
     const movie = movies [i];
@@ -253,54 +295,69 @@ async function fetchRandomMovies(count: number, preferences: any) {
     let score = 0;
 
     // Genre score calculation for movie
-    for (const g of movie.genre_ids ?? []) {
+    if (hasGenres) {
+      for (const g of movie.genre_ids ?? []) {
 
-      const weight = preferences.genres.get (g) ?? 0;
-      if (weight > 0) score += weight * weight * 2;
+        const weight = preferences.genres.get (g) ?? 0;
+        if (weight > 0) score += weight * weight * 2;
+      }
     }
 
     // Decades score calculation for movie
-    if (preferences.decades?.length && movie.release_date) {
-      const year = parseInt (movie.release_date.slice (0, 4));
-      if (preferences.decades.some ((de: any) => year >= de.startYear && year <= de.endYear)) score += 2;
+    if (hasDecades) {
+      if (preferences.decades?.length && movie.release_date) {
+        const year = parseInt (movie.release_date.slice (0, 4));
+        if (preferences.decades.some ((de: any) => year >= de.startYear && year <= de.endYear)) score += 2;
+      }
     }
 
     // Providers score calculation for movie
-    for (const p of details.providers) {
-      const weight = preferences.providers.get (p) ?? 0;
-      if (weight > 0) score += weight * weight * 2;
+    if (hasProviders) {
+      for (const p of details.providers) {
+        const weight = preferences.providers.get (p) ?? 0;
+        if (weight > 0) score += weight * weight * 2;
+      }
     }
 
     let keywordMatches = 0;
+
     // Keywords score calculation for movie
-    for (const k of details.keywords) {
-      const weight = preferences.keywords.get (k) ?? 0;
-      if (weight > 0) {
-        keywordMatches++;
-        score +=  weight * weight * 10;
+    if (hasKeywords) {
+      for (const k of details.keywords) {
+        const weight = preferences.keywords.get (k) ?? 0;
+        if (weight > 0) {
+          keywordMatches++;
+          score +=  weight * weight * 10;
+        }
       }
     }
 
     console.log ("Keyword Matches:", keywordMatches)
 
     // Actors score calculation for movie 
-    for (const a of details.actors) {
-      const weight = preferences.actors.get (a) ?? 0;
-      if (weight > 0) score +=  weight * weight * 3;
+    if (hasActors) {
+      for (const a of details.actors) {
+        const weight = preferences.actors.get (a) ?? 0;
+        if (weight > 0) score +=  weight * weight * 3;
+      }
     }
   
 
     // Directors score calculation for movie 
-    for (const d of details.directors) {
-      const weight = preferences.directors.get (d) ?? 0;
-      if (weight > 0) score +=  weight * weight * 3;
+    if (hasDirectors) {
+      for (const d of details.directors) {
+        const weight = preferences.directors.get (d) ?? 0;
+        if (weight > 0) score +=  weight * weight * 3;
+      }
     }
 
 
     // Studios score calculation for movie 
-    for (const s of details.studios) {
-      const weight = preferences.studios.get (s) ?? 0;
-      if (weight > 0) score +=  weight * weight * 2;
+    if (hasStudios) {
+      for (const s of details.studios) {
+        const weight = preferences.studios.get (s) ?? 0;
+        if (weight > 0) score +=  weight * weight * 2;
+      }
     }
 
 
@@ -315,14 +372,17 @@ async function fetchRandomMovies(count: number, preferences: any) {
     if (score >= majorityThreshold * 2) score += 20;
 
     // penalizes movies that dont have any matches to preferences
-    if (score === 0) score = -100;
+    if (score === 0 && totalPreferenceTypes > 0) score = -10;
 
     movie.score = score;
     console.log ("Movie", i, ": " , movie.score)
 
   }
 
-  const sortedMovies = movies.sort ((a, b) => b.score - a.score);
+  const sortedMovies = movies.sort ((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.id - b.id;
+  });
 
   // map to our candidate shape and sorted
   return sortedMovies.slice(0, count).map((m) => ({

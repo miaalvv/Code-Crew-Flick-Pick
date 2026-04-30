@@ -103,8 +103,12 @@ export default function ActorPreferencePage () {
         }
 
         const payload = Array.from (selected).map ((actor_id) => {
-            const name = actors.find ((a) => a.id === actor_id)?.name || '';
-            return { user_id: userId, actor_id, actor_name: name};
+            const found = actors.find ((a) => a.id === actor_id);
+            if (!found) {
+                console.warn (`Actor with id ${actor_id} not found in actors list`);
+                return null;
+            }
+            return { user_id: userId, actor_id, actor_name: found.name};
         });
 
         if (payload.length > 0) {
@@ -118,6 +122,7 @@ export default function ActorPreferencePage () {
                 return;
             }
         }
+
 
         setSaving (false);
         setSaved (true);
