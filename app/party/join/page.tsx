@@ -50,7 +50,7 @@ export default function JoinPartyPage() {
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
             <input
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onChange={(e) => setCode(e.target.value)}
               className="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm tracking-[0.18em] text-slate-100 uppercase outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-500/30"
               placeholder="ABC123"
               maxLength={12}
