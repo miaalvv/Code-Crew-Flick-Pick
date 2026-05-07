@@ -1,7 +1,7 @@
 // app/party/lobby/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { supabase as globalSupabase } from "@/app/_lib/supabaseClient";
@@ -21,7 +21,7 @@ type LobbyRow = {
   role?: string | null;
 };
 
-export default function LobbyPage() {
+function LobbyContent() {
   const params = useSearchParams();
   const router = useRouter();
   const party_id = params.get("party") ?? "";
@@ -136,7 +136,6 @@ export default function LobbyPage() {
 
     const newReady = !myReady;
 
-    // optimistic UI
     setMembers((prev) =>
       prev.map((m) =>
         m.user_id === currentUserId ? { ...m, is_ready: newReady } : m
@@ -161,11 +160,10 @@ export default function LobbyPage() {
       }
     } catch (err) {
       console.error("toggleReady error:", err);
-      await fetchMembers(); // revert
+      await fetchMembers();
     }
   }
 
-  // Join lobby once on mount for this party
   useEffect(() => {
     if (!party_id) return;
 
@@ -193,7 +191,6 @@ export default function LobbyPage() {
     };
   }, [party_id]);
 
-  // Initial load + realtime members list
   useEffect(() => {
     if (!party_id) return;
 
@@ -223,7 +220,6 @@ export default function LobbyPage() {
         )
         .subscribe();
 
-      // extra fetch after subscribe to avoid missed events
       await fetchMembers();
     })();
 
@@ -233,7 +229,6 @@ export default function LobbyPage() {
     };
   }, [party_id]);
 
-  // Realtime: party state changes (move everyone to swipe when host starts)
   useEffect(() => {
     if (!party_id) return;
 
@@ -260,7 +255,6 @@ export default function LobbyPage() {
       )
       .subscribe();
 
-    // one immediate fetch in case we missed the update before subscribing
     fetchPartyStateAndNavigate().catch(() => {});
 
     return () => {
@@ -291,7 +285,6 @@ export default function LobbyPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Failed to start session");
 
-      // host can navigate immediately
       router.push(`/party/swipe?party=${party_id}`);
     } catch (e: any) {
       console.error("startSession error:", e);
@@ -303,23 +296,28 @@ export default function LobbyPage() {
 
   return (
     <div className="mt-6 space-y-6 px-4">
-      <section className="max-w-5xl mx-auto rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40 space-y-4">
+      <section className="mx-auto max-w-5xl space-y-4 rounded-3xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-xl shadow-black/40">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-3 py-1 text-[11px] font-medium text-pink-200">
               <span className="h-2 w-2 rounded-full bg-pink-400" />
               Lobby
             </div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-50">Waiting on your crew</h1>
-            <p className="text-sm text-slate-300 max-w-2xl">
+
+            <h1 className="text-2xl font-semibold text-slate-50 sm:text-3xl">
+              Waiting on your crew
+            </h1>
+
+            <p className="max-w-2xl text-sm text-slate-300">
               Share this party link so friends can join. When everyone is ready, the host can start swiping together.
             </p>
           </div>
+
           <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-200">
-            <div className="text-[11px] uppercase tracking-[0.08em] text-slate-400 font-semibold">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
               Invite Code
             </div>
-            <div className="text-lg font-semibold text-slate-50 truncate max-w-[180px]">
+            <div className="max-w-[180px] truncate text-lg font-semibold text-slate-50">
               {inviteCode || "—"}
             </div>
           </div>
@@ -335,13 +333,20 @@ export default function LobbyPage() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-100">
-                Members <span className="text-slate-400">({readyCount}/{members.length} ready)</span>
+                Members{" "}
+                <span className="text-slate-400">
+                  ({readyCount}/{members.length} ready)
+                </span>
               </div>
             </div>
+
             <div className="mt-3 space-y-2">
               {members.length === 0 && (
-                <p className="text-xs text-slate-400">No one here yet. Share your link to invite friends.</p>
+                <p className="text-xs text-slate-400">
+                  No one here yet. Share your link to invite friends.
+                </p>
               )}
+
               {members.map((m) => (
                 <div
                   key={m.user_id}
@@ -350,8 +355,9 @@ export default function LobbyPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-100">
                     {(m.display_name || "?")[0]?.toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-sm text-slate-100 truncate">
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 truncate text-sm text-slate-100">
                       <span className="truncate">{m.display_name}</span>
                       {m.role === "host" && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/60 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold text-amber-100">
@@ -359,10 +365,12 @@ export default function LobbyPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1">
+
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500">
                       {m.user_id === currentUserId && <span>(you)</span>}
                     </div>
                   </div>
+
                   {m.user_id === currentUserId ? (
                     <button
                       onClick={toggleReady}
@@ -388,7 +396,7 @@ export default function LobbyPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20 space-y-3">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-slate-100">Status</div>
               <span className="text-[11px] text-slate-400">
@@ -397,15 +405,18 @@ export default function LobbyPage() {
             </div>
 
             <div className="flex items-center gap-2 text-sm text-slate-200">
-              <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-400 to-pink-500 transition-all"
                   style={{
-                    width: members.length ? `${(readyCount / Math.max(members.length, 1)) * 100}%` : "0%",
+                    width: members.length
+                      ? `${(readyCount / Math.max(members.length, 1)) * 100}%`
+                      : "0%",
                   }}
                 />
               </div>
-              <span className="text-xs text-slate-400 w-12 text-right">
+
+              <span className="w-12 text-right text-xs text-slate-400">
                 {readyCount}/{members.length || 1}
               </span>
             </div>
@@ -414,8 +425,13 @@ export default function LobbyPage() {
               {isHost && (
                 <button
                   onClick={handleStart}
-                  disabled={loading || sessionState === "in_progress" || members.length === 0 || readyCount === 0}
-                  className="w-full rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 hover:bg-pink-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  disabled={
+                    loading ||
+                    sessionState === "in_progress" ||
+                    members.length === 0 ||
+                    readyCount === 0
+                  }
+                  className="w-full rounded-full bg-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-pink-500/30 transition hover:bg-pink-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? "Starting…" : "Start swiping"}
                 </button>
@@ -429,5 +445,13 @@ export default function LobbyPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function LobbyPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-white">Loading lobby...</div>}>
+      <LobbyContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 // app/party/results/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Image from "next/image";
@@ -28,7 +28,7 @@ type PartyRow = {
   current_round_num: number | null;
 };
 
-export default function PartyResults() {
+function PartyResultsContent() {
   const params = useSearchParams();
   const router = useRouter();
 
@@ -292,5 +292,12 @@ export default function PartyResults() {
         </div>
       </section>
     </div>
+  );
+}
+export default function PartyResults() {
+  return (
+    <Suspense fallback={<div className="p-6 text-white">Loading results...</div>}>
+      <PartyResultsContent />
+    </Suspense>
   );
 }

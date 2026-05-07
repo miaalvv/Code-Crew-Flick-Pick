@@ -1,7 +1,7 @@
 // app/party/swipe/page.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
@@ -28,7 +28,7 @@ type WinnerDetails = {
 
 type CardDetails = WinnerDetails;
 
-export default function SwipePage() {
+function SwipePageContent() {
   const params = useSearchParams();
   const router = useRouter();
   const party_id = params.get("party") ?? "";
@@ -867,5 +867,13 @@ export default function SwipePage() {
       )}
       </div>
     </div>
+  );
+}
+
+export default function SwipePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-white">Loading swipe page...</div>}>
+      <SwipePageContent />
+    </Suspense>
   );
 }

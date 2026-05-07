@@ -1,9 +1,10 @@
+// app/_components/SwipeDeck.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import SwipeDeck from "@/app/_components/SwipeDeck";
+import SwipeCard from "@/app/_components/SwipeCard";
 
 import {
   getNextCard,
@@ -57,7 +58,14 @@ export default function SwipePage() {
 
     try {
       // 1) send swipe (your existing backend call)
-      const result = await sendSwipe(party_id, current, liked);
+      const result = await sendSwipe({
+        party_id,
+        tmdb_id: current.tmdb_id,
+        media_type: current.media_type,
+        title: current.title,
+        poster_path: current.poster_path,
+        decision: liked ? "like" : "skip",
+      });
 
       // If your sendSwipe returns a match, add it (safe optional)
       // If your API doesn't return a match object, this won't break anything.
@@ -103,8 +111,8 @@ export default function SwipePage() {
         <>
           {/* ✅ Animated swipe card */}
           {current ? (
-            <SwipeDeck
-              candidate={current as any}
+            <SwipeCard
+              candidate={current}
               disabled={loading}
               onSwipe={handleSwipe}
             />
