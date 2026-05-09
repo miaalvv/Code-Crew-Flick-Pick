@@ -63,7 +63,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: memberErr.message }, { status: 400 });
   }
 
-  // 3) add host to lobby too, so they appear in the lobby member list
+  // 3) make sure host has a profile row before adding them to party_lobby
+  const displayName =
+    user.user_metadata?.display_name ||
+    user.user_metadata?.full_name ||
+    user.email?.split("@")[0] ||
+    "User";
+
+  const { error: profileErr } = await supabase
+    .from("profiles")
+    .upsert({
+      id: user.id,
+      display_name: displayName,
+    });
+
+  if (profileErr) {
+    return NextResponse.json({ ok: false, error: profileErr.message }, { status: 400 });
+  }
+
+  // 4) add host to lobby too, so they appear in the lobby member list
   const { error: lobbyErr } = await supabase
     .from("party_lobby")
     .upsert({
