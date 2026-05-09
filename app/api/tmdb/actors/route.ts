@@ -11,7 +11,7 @@ type TMDBCastResponse = {
     cast: Actor [];
 };
 
-// used movie ids
+// used movie ids + more
 // 533533, 9702, 238, 155, 680, 408, 756, 19995, 9799, 9615, 584, 64328
 // const movieIds = [37799, 840464, 1084242, 83533]; 
 
@@ -34,7 +34,9 @@ export async function GET () {
         // tries loading actors from database
         const { data: existing, error } = await supabase
             .from ("tmdb_actors")
-            .select ("id, name");
+            .select ("id, name, popularity")
+            .gte ("popularity", 1)
+            .range (0, 10000);
 
         if (error) {
             return NextResponse.json ({ ok: false, error: error.message }, { status: 500})
@@ -78,6 +80,7 @@ export async function GET () {
             
             console.log ("UPSERT RESULT: ", { data, upsertError});
 
+
             if (upsertError) {
                 return NextResponse.json (
                     { ok: false, error: upsertError.message},
@@ -93,9 +96,13 @@ export async function GET () {
         // combines new and existing actors, into one in order to return all items in tmdb_actors table into frontend keywords pref page 
         const { data: allFromDb, error: finalFetchError } = await supabase
             .from ("tmdb_actors")
-            .select ("id, name, popularity");
+            .select ("id, name, popularity")
+            .gte ("popularity", 3.5)
+            .range (0, 10000);
 
         if (finalFetchError) throw finalFetchError;
+
+        console.log ("DB actor count:", allFromDb?.length);
 
         return NextResponse.json ({
             ok: true,

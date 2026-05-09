@@ -1,6 +1,6 @@
-// app/party/id/page.tsx
+// app/party/[id]/page.tsx
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '../../_lib/supabaseClient';
@@ -13,10 +13,9 @@ type Card = {
   media_type: 'movie' | 'tv';
 };
 
-export default function PartyPage({ params }: { params: { id: string }}) {
-  const partyId = params.id;
+export default function PartyPage({ params }: { params: Promise<{ id: string }>}) {
+  const { id: partyId } = use(params);
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
   const [invite, setInvite] = useState<string>('');
   const [cards, setCards] = useState<Card[]>([]);
   const pageRef = useRef(1);
@@ -29,7 +28,6 @@ export default function PartyPage({ params }: { params: { id: string }}) {
       const userRes = await supabase.auth.getUser();
       const user = (userRes as any)?.data?.user ?? (userRes as any)?.user ?? null;
       if (!user) { window.location.href = '/login'; return; }
-      setUserId(user.id);
 
       // make sure I'm a member (upsert to add if missing)
       await supabase.from('party_members').upsert({ party_id: partyId, user_id: user.id, role: 'member' });

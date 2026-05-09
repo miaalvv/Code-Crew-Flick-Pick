@@ -11,12 +11,12 @@ type TMDBKeywordResponse = {
     keywords: Keyword [];
 };
 
-// used movie ids
+// used movie ids + more
 // 533533, 9702, 238, 155, 680, 408, 756, 19995, 9799, 9615, 584, 64328
 // const movieIds = [37799, 840464, 1084242, 83533]; 
 
 // add more movie ids to have more keywords
-const movieIds = [37799];
+const movieIds = [83533];
 
 function tmdb (path: string) {
     const url = new URL (`https://api.themoviedb.org/3${path}`);
@@ -86,11 +86,30 @@ export async function GET () {
         uniqueKeywords.forEach (k => merged.set (k.id, k));
 
         // combines new and existing keywords, into one in order to return all items in tmdb_keywords table into frontend keywords pref page 
-        const { data: allFromDb, error: finalFetchError } = await supabase
-            .from ("tmdb_keywords")
-            .select ("id, name");
+        // and loads 500 keywords at a time in order to display all keywords without hitting any limits (previously limited to 1000)
+        
+        const pageSize = 500;
+        let from = 0;
+        let allFromDb: Keyword [] = [];
 
-        if (finalFetchError) throw finalFetchError;
+        while (true) {
+            const { data, error: finalFetchError } = await supabase
+                .from ("tmdb_keywords")
+                .select ("id, name")
+                .range (from, from + pageSize - 1);
+
+            if (finalFetchError) throw finalFetchError;
+
+            if (!data || data.length === 0) break;
+
+            allFromDb.push (...data);
+            
+            if (data.length < pageSize) break;
+            
+            from += pageSize;
+        }
+
+        console.log ("DB keyword count:", allFromDb?.length);
 
         return NextResponse.json ({
             ok: true,

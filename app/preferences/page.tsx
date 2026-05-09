@@ -16,6 +16,7 @@ export default function PreferencesPage() {
   const [error, setError] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [ searchTerm, setSearchTerm] = useState('');
 
   // we want the popular services at the top
   const preferredOrder = useMemo(
@@ -126,11 +127,13 @@ export default function PreferencesPage() {
     setSaving(false);
     setSaved(true);
 
-    // Go back to previous page if possible; otherwise stay
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-    }
+    // 🔥 NEW: redirect back to profile after successful save
+    window.location.href = '/profile';
   };
+
+  const filteredProviders = providers.filter ((provider) => 
+        provider.name.toLowerCase ().includes (searchTerm.toLowerCase ())
+        );
 
   // ---------- RENDER ----------
 
@@ -186,9 +189,21 @@ export default function PreferencesPage() {
           </div>
         )}
 
+         {/* Search Bar */}
+
+        <div className="mb-4 flex flex-wrap sm:flex-nowrap gap-2 items-center">
+            <input 
+                type="text"
+                placeholder="Search for providers"
+                className="flex-1 min-w-0 rounded-lg border bg-slate-800/60 p-2 text-slate-100 focus:outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm (e.target.value)}
+            />
+        </div>
+
         {/* Providers grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {providers.map((p) => {
+          {filteredProviders.map((p) => {
             const on = selected.has(p.id);
             return (
               <button
