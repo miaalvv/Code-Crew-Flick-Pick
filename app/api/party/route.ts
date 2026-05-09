@@ -63,6 +63,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: memberErr.message }, { status: 400 });
   }
 
+  // 3) add host to lobby too, so they appear in the lobby member list
+  const { error: lobbyErr } = await supabase
+    .from("party_lobby")
+    .upsert({
+      party_id: partyRow.id,
+      user_id: user.id,
+      is_ready: false,
+    });
+
+  if (lobbyErr) {
+    return NextResponse.json({ ok: false, error: lobbyErr.message }, { status: 400 });
+  }
+
   return NextResponse.json({
     ok: true,
     party_id: partyRow.id,
